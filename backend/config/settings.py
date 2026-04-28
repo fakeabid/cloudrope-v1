@@ -8,13 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
@@ -31,6 +25,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.users',
+    'apps.files',
 ]
 
 DJANGO_APPS = [
@@ -78,7 +73,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -86,6 +80,31 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+# --- Storage ---
+AWS_ACCESS_KEY_ID       = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY   = env('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME      = env('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_DEFAULT_ACL         = 'private'
+AWS_S3_FILE_OVERWRITE   = False
+
+
+# Django 4.2+ storage config
+STORAGES = {
+    "default": {
+        "BACKEND": "apps.files.storage.PrivateS3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# --- File Limits ---
+MAX_FILE_SIZE    = 100 * 1024 * 1024        # 100 MB
+MAX_USER_STORAGE = 1  * 1024 * 1024 * 1024  # 1 GB
+
 
 # --- Custom User Model ---
 AUTH_USER_MODEL = 'users.CloudropeUser'
@@ -131,7 +150,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -158,7 +176,6 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
 ]
 
-# Allow JWT Authorization header to be sent cross-origin
 CORS_ALLOW_HEADERS = [
     'accept',
     'authorization',
@@ -186,7 +203,6 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 

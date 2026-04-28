@@ -1,9 +1,5 @@
 from rest_framework_simplejwt.tokens import RefreshToken
-import hashlib
-
-
-def hash_password(password_hash: str) -> str:
-    return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
+from .utils import hash_password
 
 
 class PasswordAwareRefreshToken(RefreshToken):
@@ -12,3 +8,11 @@ class PasswordAwareRefreshToken(RefreshToken):
         token = super().for_user(user)
         token['pwd_hash'] = hash_password(user.password)
         return token
+    
+
+def get_tokens_for_user(user):
+    refresh = PasswordAwareRefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }

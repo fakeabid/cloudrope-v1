@@ -1,8 +1,11 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from django.utils import timezone
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.password_validation import validate_password as validate_password_func
+from django.db import IntegrityError, transaction
 from datetime import date
 import re
 
@@ -55,7 +58,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        validate_password(value)
+        validate_password_func(value)
         return value
 
     def validate(self, data):
@@ -66,12 +69,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        User.all_objects.filter(
-            email=validated_data['email'],
-            deleted_at__isnull=False
-        ).delete()
         validated_data.pop("confirm_password")
-        return User.objects.create_user(**validated_data)
+        
+        try:
+            with transaction.atomic():
+                # Remove soft-deleted duplicates
+                User.all_objects.filter(
+                    email=validated_data['email'],
+                    deleted_at__isnull=False
+                ).delete()
+
+                # Create user
+                return User.objects.create_user(**validated_data)
+
+        except IntegrityError:
+            raise serializers.ValidationError({
+                "email": "This email address cannot be used. Please try a different one."
+            })
     
 
 class LoginSerializer(serializers.Serializer):
@@ -82,25 +96,36 @@ class LoginSerializer(serializers.Serializer):
         return normalize_email(value)
 
     def validate(self, data):
+        email    = data["email"]
+        password = data["password"]
+
         user = authenticate(
             request=self.context.get('request'),
-            username=data["email"],
-            password=data["password"]
+            username=email,
+            password=password
         )
 
         if not user:
-            raise serializers.ValidationError("Invalid credentials. Please try again.")
+            # authenticate() returns None for both wrong credentials AND deleted accounts
+            # (because user_can_authenticate now blocks deleted users).
+            # Only reveal the distinction if the password is correct — otherwise
+            # an attacker could enumerate deleted accounts.
+            try:
+                deleted_user = User.all_objects.get(email=email, deleted_at__isnull=False)
+                if deleted_user.check_password(password):
+                    raise serializers.ValidationError(
+                        "This account has been deleted. Please contact support if you believe this is a mistake."
+                    )
+            except User.DoesNotExist:
+                pass
 
-        if user.deleted_at is not None:
-            raise serializers.ValidationError(
-                "This account has been deleted. Please contact support if you believe this is a mistake."
-            )
+            raise serializers.ValidationError("Invalid credentials. Please try again.")
 
         if not user.is_active:
             raise serializers.ValidationError(
                 "Please verify your email before logging in. Check your inbox for the verification link."
             )
-        
+
         data["user"] = user
         return data
 
@@ -181,7 +206,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(write_only=True)
 
     def validate_password(self, value):
-        validate_password(value)
+        validate_password_func(value)
         return value
 
     def validate(self, data):
@@ -205,6 +230,12 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def save(self):
         self.user.set_password(self.validated_data['password'])
         self.user.save(update_fields=['password'])
+        # Invalidate all outstanding tokens
+        for token in OutstandingToken.objects.filter(
+            user=self.user, 
+            expires_at__gt=timezone.now()
+        ):
+            BlacklistedToken.objects.get_or_create(token=token)
 
 
 class DeleteAccountSerializer(serializers.Serializer):
@@ -225,5 +256,14 @@ class DeleteAccountSerializer(serializers.Serializer):
         return value
 
     def save(self):
-        self.token.blacklist()
-        self.context['request'].user.soft_delete()
+        user = self.context['request'].user
+
+        # Blacklist all active refresh tokens
+        for token in OutstandingToken.objects.filter(
+            user=user, 
+            expires_at__gt=timezone.now()
+        ):
+            BlacklistedToken.objects.get_or_create(token=token)
+
+        # Soft delete user
+        user.soft_delete()

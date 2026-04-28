@@ -17,11 +17,11 @@ from .serializers import (
     DeleteAccountSerializer
 )
 from .utils import (
-    get_tokens_for_user,
     generate_verification_token,
     send_verification_email,
     verify_verification_token,
 )
+from .tokens import get_tokens_for_user
 from .throttles import (
     LoginRateThrottle,
     RegisterRateThrottle,
@@ -90,7 +90,7 @@ class TokenRefreshView(BaseTokenRefreshView):
                 user = User.objects.get(id=user_id)
                 response.data['user'] = UserSerializer(user).data
             except User.DoesNotExist:
-                pass
+                return Response({'error': 'User not found.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         return response
 

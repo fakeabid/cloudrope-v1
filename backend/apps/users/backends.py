@@ -1,6 +1,7 @@
 # apps/users/backends.py
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password as dummy_check
 
 User = get_user_model()
 
@@ -12,6 +13,7 @@ class CloudropeBackend(ModelBackend):
         try:
             user = User.all_objects.get(email=username)
         except User.DoesNotExist:
+            dummy_check(password, "!")
             return None
 
         if not user.check_password(password):
@@ -21,5 +23,4 @@ class CloudropeBackend(ModelBackend):
         return user
 
     def user_can_authenticate(self, user):
-        # Override ModelBackend's is_active check
-        return True
+        return user.deleted_at is None

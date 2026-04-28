@@ -1,22 +1,18 @@
-from .tokens import PasswordAwareRefreshToken as RefreshToken
+import hashlib
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.core.mail import send_mail
 from django.conf import settings
+from urllib.parse import quote
 
 
 def normalize_email(email):
     return email.strip().lower()
 
+def hash_password(password_hash: str) -> str:
+    return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
+
 verification_signer = TimestampSigner(salt='email-verification')
 reset_signer = TimestampSigner(salt='password-reset')
-
-
-def get_tokens_for_user(user):
-    refresh = RefreshToken.for_user(user)
-    return {
-        'refresh': str(refresh),
-        'access': str(refresh.access_token),
-    }
 
 
 def generate_verification_token(user):
@@ -34,7 +30,7 @@ def verify_verification_token(token, max_age=86400):  # 24 hours
 
 
 def send_verification_email(user, token):
-    verification_url = f"{settings.FRONTEND_URL}/auth/verify-email/?token={token}"
+    verification_url = f"{settings.FRONTEND_URL}/auth/verify-email/?token={quote(token, safe='')}"
     send_mail(
         subject="Verify your Cloudrope account",
         message=f"Hi {user.first_name},\n\nPlease verify your email by clicking the link below:\n\n{verification_url}\n\nThis link expires in 24 hours.",

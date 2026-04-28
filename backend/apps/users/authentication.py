@@ -1,10 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
-import hashlib
-
-
-def hash_password(password_hash: str) -> str:
-    return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
+from .utils import hash_password
 
 class PasswordAwareJWTAuthentication(JWTAuthentication):
     def get_user(self, validated_token):
