@@ -82,29 +82,36 @@ DATABASES = {
 }
 
 
-# --- Storage ---
-AWS_ACCESS_KEY_ID       = env('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY   = env('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME      = env('AWS_S3_REGION_NAME', default='us-east-1')
-AWS_DEFAULT_ACL         = 'private'
-AWS_S3_FILE_OVERWRITE   = False
+# --- File Uploads ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# # --- Storage ---
+# AWS_ACCESS_KEY_ID       = env('AWS_ACCESS_KEY_ID')
+# AWS_SECRET_ACCESS_KEY   = env('AWS_SECRET_ACCESS_KEY')
+# AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+# AWS_S3_REGION_NAME      = env('AWS_S3_REGION_NAME', default='us-east-1')
+# AWS_DEFAULT_ACL         = 'private'
+# AWS_S3_FILE_OVERWRITE   = False
 
 
-# Django 4.2+ storage config
-STORAGES = {
-    "default": {
-        "BACKEND": "apps.files.storage.PrivateS3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
+# # Django 4.2+ storage config
+# STORAGES = {
+#     "default": {
+#         "BACKEND": "apps.files.storage.PrivateS3Storage",
+#     },
+#     "staticfiles": {
+#         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+#     },
+# }
+
+# # --- File Limits ---
+# MAX_FILE_SIZE    = 100 * 1024 * 1024        # 100 MB
+# MAX_USER_STORAGE = 1  * 1024 * 1024 * 1024  # 1 GB
 
 # --- File Limits ---
-MAX_FILE_SIZE    = 100 * 1024 * 1024        # 100 MB
-MAX_USER_STORAGE = 1  * 1024 * 1024 * 1024  # 1 GB
-
+MAX_FILE_SIZE    = 10 * 1024 * 1024        # 10 MB
+MAX_USER_STORAGE = 1  * 100 * 1024 * 1024  # 100 MB
 
 # --- Custom User Model ---
 AUTH_USER_MODEL = 'users.CloudropeUser'
@@ -142,11 +149,6 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,    # old refresh token is invalidated
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
-
-# --- File Uploads ---
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Password validation
