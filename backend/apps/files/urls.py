@@ -6,7 +6,10 @@ from .views import (
     FileDeleteView,
     TrashListView,
     FileRestoreView,
-    FilePermanentDeleteView
+    FilePermanentDeleteView,
+    FileShareCreateView,
+    SharedFileAccessView,
+    SharedFileDownloadView
 )
 
 urlpatterns = [
@@ -17,4 +20,7 @@ urlpatterns = [
     path('trash/', TrashListView.as_view(), name='file_trash'),
     path('<int:pk>/restore/', FileRestoreView.as_view(), name='file_restore'),
     path('<int:pk>/permanent-delete/', FilePermanentDeleteView.as_view(), name='file_permanent_delete'),
+    path('<int:pk>/share/', FileShareCreateView.as_view(), name='file_share'),
+    path('shared/<str:token>/', SharedFileAccessView.as_view(), name='shared_access'),
+    path('shared/<str:token>/download/', SharedFileDownloadView.as_view(), name='shared_download'),
 ]

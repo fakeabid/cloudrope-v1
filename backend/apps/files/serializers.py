@@ -1,10 +1,11 @@
 import os
 import magic
-
+from datetime import timedelta
+from django.utils import timezone
 from django.conf import settings
 from rest_framework import serializers
 
-from .models import UserFile
+from .models import UserFile, FileShare
 from .utils import get_user_storage_used
 
 ALLOWED_MIME_TYPES = {
@@ -14,6 +15,8 @@ ALLOWED_MIME_TYPES = {
     'text/plain',
 }
 
+
+# File Upload Serializers
 
 class FileUploadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -82,3 +85,27 @@ class FileListSerializer(serializers.ModelSerializer):
                 return f"{size:.1f} {unit}"
             size /= 1024
         return f"{size:.1f} TB"
+    
+
+# File Sharing Serializers
+
+class FileShareCreateSerializer(serializers.Serializer):
+    expiration_hours = serializers.IntegerField(required=False, min_value=1, max_value=168)
+
+    def create(self, validated_data):
+        request = self.context['request']
+        file_obj = self.context['file']
+
+        expires_at = None
+        if 'expiration_hours' in validated_data:
+            expires_at = timezone.now() + timedelta(
+                hours=validated_data['expiration_hours']
+            )
+
+        share = FileShare.objects.create(
+            file=file_obj,
+            shared_by=request.user,
+            expires_at=expires_at
+        )
+
+        return share
