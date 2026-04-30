@@ -65,6 +65,10 @@ class FileShare(models.Model):
 
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_revoked = models.BooleanField(default=False)
+    max_downloads = models.PositiveIntegerField(null=True, blank=True)
+    download_count = models.PositiveIntegerField(default=0)
+    first_accessed_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.token:
@@ -73,4 +77,41 @@ class FileShare(models.Model):
 
     @property
     def is_expired(self):
-        return self.expires_at and timezone.now() > self.expires_at
+        if self.expires_at and timezone.now() > self.expires_at:
+            return True
+        return False
+    
+    @property
+    def is_active(self):
+        if self.is_revoked:
+            return False
+        if self.is_expired:
+            return False
+        if self.is_download_limit_reached:
+            return False
+        return True
+        
+    @property
+    def is_download_limit_reached(self):
+        return (
+            self.max_downloads is not None and
+            self.download_count >= self.max_downloads
+        )
+
+
+class ShareAccessLog(models.Model):
+    class Action(models.TextChoices):
+            VIEW = 'view', 'View'
+            DOWNLOAD = 'download', 'Download'
+
+    share = models.ForeignKey(
+        FileShare,
+        on_delete=models.CASCADE,
+        related_name='logs'
+    )
+
+    action = models.CharField(max_length=10, choices=Action.choices)
+    accessed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.action} at {self.accessed_at}"

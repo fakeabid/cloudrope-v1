@@ -39,7 +39,7 @@ class FileUploadSerializer(serializers.ModelSerializer):
 
         used_storage = get_user_storage_used(user)
         if used_storage + file.size > settings.MAX_USER_STORAGE:
-            raise serializers.ValidationError({"File exceeds maximum size limit."})
+            raise serializers.ValidationError("File exceeds maximum size limit.")
 
         return file
 
@@ -48,13 +48,10 @@ class FileUploadSerializer(serializers.ModelSerializer):
         file = validated_data.get('file')
 
         original_name = os.path.basename(file.name)
-        mime = magic.from_buffer(file.read(2048), mime=True)
-        file.seek(0)
 
         validated_data['owner'] = request.user
         validated_data['original_name'] = original_name
         validated_data['size'] = file.size
-        validated_data['mime_type'] = mime
         return super().create(validated_data)
 
 
@@ -91,6 +88,11 @@ class FileListSerializer(serializers.ModelSerializer):
 
 class FileShareCreateSerializer(serializers.Serializer):
     expiration_hours = serializers.IntegerField(required=False, min_value=1, max_value=168)
+    max_downloads = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        allow_null=True
+    )
 
     def create(self, validated_data):
         request = self.context['request']
@@ -105,7 +107,31 @@ class FileShareCreateSerializer(serializers.Serializer):
         share = FileShare.objects.create(
             file=file_obj,
             shared_by=request.user,
-            expires_at=expires_at
+            expires_at=expires_at,
+            max_downloads=validated_data.get('max_downloads')
         )
 
         return share
+    
+
+class FileShareListSerializer(serializers.ModelSerializer):
+    file_name = serializers.CharField(source='file.original_name', read_only=True)
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FileShare
+        fields = [
+            'id',
+            'file_name',
+            'token',
+            'created_at',
+            'expires_at',
+            'status'
+        ]
+
+    def get_status(self, obj):
+        if obj.is_revoked:
+            return "revoked"
+        if obj.is_expired:
+            return "expired"
+        return "active"

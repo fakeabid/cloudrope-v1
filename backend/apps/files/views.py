@@ -2,16 +2,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-
 from django.shortcuts import get_object_or_404
+from django.utils import timezone 
 from django.http import FileResponse
+from django.db.models import F
 
-from .models import UserFile, FileShare
+from .models import UserFile, FileShare, ShareAccessLog
 from .permissions import IsFileOwner
 from .serializers import (
     FileUploadSerializer,
     FileListSerializer,
-    FileShareCreateSerializer
+    FileShareCreateSerializer,
+    FileShareListSerializer
 )
 
 
@@ -66,7 +68,11 @@ class FileDownloadView(APIView):
         )
         self.check_object_permissions(request, file_obj)
 
-        return FileResponse(file_obj.file.open('rb'), as_attachment=True)
+        return FileResponse(
+            file_obj.file.open('rb'), 
+            as_attachment=True, 
+            filename=file_obj.original_name
+        )
     
 
 class FileDeleteView(APIView):
@@ -84,7 +90,7 @@ class FileDeleteView(APIView):
 
         return Response(
             {"message": "File moved to trash."},
-            status=status.HTTP_204_NO_CONTENT
+            status=status.HTTP_200_OK
         )
 
 
@@ -140,7 +146,7 @@ class FilePermanentDeleteView(APIView):
 
         return Response(
             {"message": "File permanently deleted."},
-            status=status.HTTP_204_NO_CONTENT
+            status=status.HTTP_200_OK
         )
     
 
@@ -183,13 +189,29 @@ class SharedFileAccessView(APIView):
     def get(self, request, token):
         share = get_object_or_404(FileShare, token=token)
 
+        if share.is_revoked:
+            return Response(
+                {"error": "This link has been revoked."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if share.is_expired:
             return Response(
                 {"error": "This link has expired."},
                 status=status.HTTP_410_GONE
             )
+        
+        FileShare.objects.filter(
+            pk=share.pk, 
+            first_accessed_at__isnull=True
+        ).update(first_accessed_at=timezone.now())
 
         file_obj = share.file
+
+        ShareAccessLog.objects.create(
+            share=share,
+            action=ShareAccessLog.Action.VIEW
+        )
 
         return Response({
             "file_name": file_obj.original_name,
@@ -207,13 +229,69 @@ class SharedFileDownloadView(APIView):
     def get(self, request, token):
         share = get_object_or_404(FileShare, token=token)
 
+        if share.is_revoked:
+            return Response(
+                {"error": "This link has been revoked."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if share.is_expired:
             return Response(
                 {"error": "This link has expired."},
                 status=status.HTTP_410_GONE
             )
+        
+        updated = FileShare.objects.filter(
+            pk=share.pk,
+            download_count__lt=F('max_downloads')
+        ).update(download_count=F('download_count') + 1)
+        if not updated:
+            return Response({"error": "Download limit reached."}, status=status.HTTP_403_FORBIDDEN)
+
+        ShareAccessLog.objects.create(
+            share=share,
+            action=ShareAccessLog.Action.DOWNLOAD
+        )
 
         return FileResponse(
             share.file.file.open('rb'),
-            as_attachment=True
+            as_attachment=True,
+            filename=share.file.original_name
+        )
+    
+
+class FileShareListView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        shares = FileShare.objects.filter(
+            shared_by=request.user
+        ).order_by('-created_at')
+
+        serializer = FileShareListSerializer(shares, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class FileShareRevokeView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, share_id):
+        share = get_object_or_404(
+            FileShare,
+            pk=share_id,
+            shared_by=request.user
+        )
+
+        if share.is_revoked:
+            return Response(
+                {"error": "Share already revoked."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        share.is_revoked = True
+        share.save(update_fields=['is_revoked'])
+
+        return Response(
+            {"message": "Share revoked successfully."},
+            status=status.HTTP_200_OK
         )
