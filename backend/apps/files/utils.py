@@ -1,7 +1,5 @@
-from django.db.models import Sum
-from .models import UserFile
-
-
-def get_user_storage_used(user):
-    result = UserFile.objects.filter(owner=user).aggregate(total=Sum('size'))
-    return result['total'] or 0
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')

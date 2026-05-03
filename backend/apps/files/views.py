@@ -8,13 +8,13 @@ from django.http import FileResponse
 from django.db.models import F
 
 from .models import UserFile, FileShare, ShareAccessLog
-from .permissions import IsFileOwner
 from .serializers import (
     FileUploadSerializer,
     FileListSerializer,
     FileShareCreateSerializer,
     FileShareListSerializer
 )
+from .utils import get_client_ip
 
 
 # File Views
@@ -57,7 +57,7 @@ class FileListView(APIView):
 
 
 class FileDownloadView(APIView):
-    permission_classes = (IsAuthenticated, IsFileOwner)
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request, pk):
         file_obj = get_object_or_404(
@@ -66,7 +66,6 @@ class FileDownloadView(APIView):
             owner=request.user,
             is_deleted=False
         )
-        self.check_object_permissions(request, file_obj)
 
         return FileResponse(
             file_obj.file.open('rb'), 
@@ -76,7 +75,7 @@ class FileDownloadView(APIView):
     
 
 class FileDeleteView(APIView):
-    permission_classes = (IsAuthenticated, IsFileOwner)
+    permission_classes = (IsAuthenticated,)
 
     def delete(self, request, pk):
         file_obj = get_object_or_404(
@@ -85,7 +84,6 @@ class FileDeleteView(APIView):
             owner=request.user,
             is_deleted=False
         )
-        self.check_object_permissions(request, file_obj)
         file_obj.soft_delete()
 
         return Response(
@@ -113,7 +111,7 @@ class TrashListView(APIView):
     
 
 class FileRestoreView(APIView):
-    permission_classes = (IsAuthenticated, IsFileOwner)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request, pk):
         file_obj = get_object_or_404(
@@ -122,7 +120,6 @@ class FileRestoreView(APIView):
             owner=request.user,
             is_deleted=True
         )
-        self.check_object_permissions(request, file_obj)
         file_obj.restore()
 
         return Response(
@@ -132,7 +129,7 @@ class FileRestoreView(APIView):
     
 
 class FilePermanentDeleteView(APIView):
-    permission_classes = (IsAuthenticated, IsFileOwner)
+    permission_classes = (IsAuthenticated,)
 
     def delete(self, request, pk):
         file_obj = get_object_or_404(
@@ -141,7 +138,6 @@ class FilePermanentDeleteView(APIView):
             owner=request.user,
             is_deleted=True 
         )
-        self.check_object_permissions(request, file_obj)
         file_obj.hard_delete()
 
         return Response(
@@ -191,7 +187,7 @@ class SharedFileAccessView(APIView):
 
         if share.is_revoked:
             return Response(
-                {"error": "This link has been revoked."},
+                {"error": "This link has been revoked/deleted."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -210,16 +206,19 @@ class SharedFileAccessView(APIView):
 
         ShareAccessLog.objects.create(
             share=share,
-            action=ShareAccessLog.Action.VIEW
+            action=ShareAccessLog.Action.VIEW,
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
         )
 
         return Response({
             "file_name": file_obj.original_name,
             "file_size": file_obj.size,
             "mime_type": file_obj.mime_type,
+            "can_download": share.is_active,  # false if limit reached
             "download_url": request.build_absolute_uri(
                 f"/files/shared/{token}/download/"
-            )
+            ) if share.is_active else None,
         })
     
 
@@ -231,7 +230,7 @@ class SharedFileDownloadView(APIView):
 
         if share.is_revoked:
             return Response(
-                {"error": "This link has been revoked."},
+                {"error": "This link has been revoked/deleted."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -241,16 +240,23 @@ class SharedFileDownloadView(APIView):
                 status=status.HTTP_410_GONE
             )
         
-        updated = FileShare.objects.filter(
-            pk=share.pk,
-            download_count__lt=F('max_downloads')
-        ).update(download_count=F('download_count') + 1)
-        if not updated:
-            return Response({"error": "Download limit reached."}, status=status.HTTP_403_FORBIDDEN)
+        if share.max_downloads is not None:
+            updated = FileShare.objects.filter(
+                pk=share.pk,
+                download_count__lt=F('max_downloads')
+            ).update(download_count=F('download_count') + 1)
+            if not updated:
+                return Response({"error": "Download limit reached."}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            FileShare.objects.filter(pk=share.pk).update(
+                download_count=F('download_count') + 1
+            )
 
         ShareAccessLog.objects.create(
             share=share,
-            action=ShareAccessLog.Action.DOWNLOAD
+            action=ShareAccessLog.Action.DOWNLOAD,
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
         )
 
         return FileResponse(

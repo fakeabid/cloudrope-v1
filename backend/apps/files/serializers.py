@@ -3,10 +3,10 @@ import magic
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
+from django.db import transaction
 from rest_framework import serializers
 
-from .models import UserFile, FileShare
-from .utils import get_user_storage_used
+from .models import UserFile, FileShare, get_user_storage_summary
 
 ALLOWED_MIME_TYPES = {
     'image/jpeg',
@@ -33,25 +33,41 @@ class FileUploadSerializer(serializers.ModelSerializer):
 
         mime = magic.from_buffer(file.read(2048), mime=True)
         file.seek(0)
-
         if mime not in ALLOWED_MIME_TYPES:
             raise serializers.ValidationError(f"File type '{mime}' is not allowed.")
+        file._detected_mime = mime
 
-        used_storage = get_user_storage_used(user)
-        if used_storage + file.size > settings.MAX_USER_STORAGE:
-            raise serializers.ValidationError("File exceeds maximum size limit.")
+        try:
+            with transaction.atomic():
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                User.objects.select_for_update().get(pk=user.pk)
+
+                usage_data = get_user_storage_summary(user)
+                current_usage = usage_data['used'] + usage_data['trash']
+    
+                if current_usage + file.size > settings.MAX_USER_STORAGE:
+                    raise serializers.ValidationError(
+                        "Storage quota exceeded. Please delete files or empty your trash."
+                    )
+        except serializers.ValidationError:
+            raise
+        except Exception as e:
+            raise serializers.ValidationError("Could not verify storage available")
 
         return file
 
     def create(self, validated_data):
         request = self.context.get('request')
         file = validated_data.get('file')
+        mime = file._detected_mime
 
         original_name = os.path.basename(file.name)
 
         validated_data['owner'] = request.user
         validated_data['original_name'] = original_name
         validated_data['size'] = file.size
+        validated_data['mime_type'] = mime
         return super().create(validated_data)
 
 
@@ -126,7 +142,9 @@ class FileShareListSerializer(serializers.ModelSerializer):
             'token',
             'created_at',
             'expires_at',
-            'status'
+            'status',
+            'max_downloads',
+            'download_count'
         ]
 
     def get_status(self, obj):
@@ -134,4 +152,6 @@ class FileShareListSerializer(serializers.ModelSerializer):
             return "revoked"
         if obj.is_expired:
             return "expired"
+        if obj.is_download_limit_reached: 
+            return "exhausted"
         return "active"

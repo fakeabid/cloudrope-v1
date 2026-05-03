@@ -3,12 +3,26 @@ import secrets
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+import logging
+from django.db.models import Sum, Q
 
+logger = logging.getLogger(__name__)
 
 def file_upload_path(instance, filename):
     ext = filename.rsplit('.', 1)[-1] if '.' in filename else ''
     unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
     return f"uploads/{instance.owner.id}/{unique_name}"
+
+
+def get_user_storage_summary(user):
+    result = UserFile.objects.filter(owner=user).aggregate(
+        active=Sum('size', filter=Q(is_deleted=False)),
+        trash=Sum('size', filter=Q(is_deleted=True)),
+    )
+    return {
+        'used': result['active'] or 0,
+        'trash': result['trash'] or 0,
+    }
 
 
 class UserFile(models.Model):
@@ -31,6 +45,7 @@ class UserFile(models.Model):
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
+        self.shares.filter(is_revoked=False).update(is_revoked=True) 
         self.save(update_fields=['is_deleted', 'deleted_at'])
 
     def restore(self):
@@ -39,9 +54,6 @@ class UserFile(models.Model):
         self.save(update_fields=['is_deleted', 'deleted_at'])
 
     def hard_delete(self):
-        if self.file:
-            self.file.delete(save=False)
-
         self.delete()
 
     def __str__(self):
@@ -101,8 +113,8 @@ class FileShare(models.Model):
 
 class ShareAccessLog(models.Model):
     class Action(models.TextChoices):
-            VIEW = 'view', 'View'
-            DOWNLOAD = 'download', 'Download'
+        VIEW = 'view', 'View'
+        DOWNLOAD = 'download', 'Download'
 
     share = models.ForeignKey(
         FileShare,
@@ -112,6 +124,8 @@ class ShareAccessLog(models.Model):
 
     action = models.CharField(max_length=10, choices=Action.choices)
     accessed_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=512, blank=True, default='')
 
     def __str__(self):
         return f"{self.action} at {self.accessed_at}"
