@@ -173,7 +173,7 @@ class ResendVerificationSerializer(serializers.Serializer):
             return value
 
         if user.is_active:
-            raise serializers.ValidationError("This account is already verified.")
+            user = None
 
         self.user = user
         return value

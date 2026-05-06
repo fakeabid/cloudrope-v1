@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import Modal from '../ui/Modal';
 import CopyButton from '../ui/CopyButton';
 import { shareFile } from '../../store/filesSlice';
+import { fetchShares } from '../../store/sharesSlice';
 import { extractErrorMessage } from '../../utils/errors';
 
 export default function ShareModal({ file, isOpen, onClose }) {
@@ -30,6 +31,8 @@ export default function ShareModal({ file, isOpen, onClose }) {
       const token = result.share_url.split('/').filter(Boolean).pop();
       const frontendUrl = `${window.location.origin}/shared/${token}`;
       setShareUrl(frontendUrl);
+      // Sync the My Shares page immediately — no manual refresh needed
+      dispatch(fetchShares());
       toast.success('Share link created!');
     } catch (err) {
       toast.error(extractErrorMessage({ response: { data: err } }));

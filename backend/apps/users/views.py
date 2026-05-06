@@ -134,7 +134,6 @@ class VerifyEmailView(APIView):
         return Response({
             'message': 'Email verified successfully.',
             'user': UserSerializer(user).data,
-            'tokens': get_tokens_for_user(user),
         }, status=status.HTTP_200_OK)
     
 

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CheckCircle, XCircle, Loader, MailCheck } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import { authAPI } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
@@ -8,15 +8,22 @@ import { useAuth } from '../../context/AuthContext';
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('loading'); // loading | success | already | error
+  const [verifiedEmail, setVerifiedEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const { updateTokens, updateUser } = useAuth();
-  const navigate = useNavigate();
   const token = searchParams.get('token');
+  const calledRef = useRef(false);
 
   useEffect(() => {
+    // Guard against React Strict Mode's double-invoke in dev:
+    // the first call verifies + consumes the token, the second call would
+    // see it as already-verified. The ref ensures we only ever call once.
+    if (calledRef.current) return;
+    calledRef.current = true;
+
     if (!token) {
-      setStatus('error');
       setErrorMsg('No verification token found in the URL.');
+      setStatus('error');
       return;
     }
 
@@ -25,14 +32,17 @@ export default function VerifyEmail() {
         const { data } = await authAPI.verifyEmail(token);
 
         if (data.tokens) {
+          // Verified fresh — store credentials so they're logged in when
+          // they navigate to the dashboard from the success screen.
           updateTokens(data.tokens);
-          if (data.user) updateUser(data.user);
+          if (data.user) {
+            updateUser(data.user);
+            setVerifiedEmail(data.user.email);
+          }
           setStatus('success');
-          setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
         } else {
-          // Already verified
+          // Already verified — no tokens returned
           setStatus('already');
-          setTimeout(() => navigate('/auth/login', { replace: true }), 2000);
         }
       } catch (err) {
         const msg =
@@ -49,7 +59,8 @@ export default function VerifyEmail() {
 
   return (
     <AuthLayout title="Email verification" subtitle="">
-      <div className="flex flex-col items-center py-4 text-center gap-4">
+      <div className="flex flex-col items-center py-2 text-center gap-5">
+
         {status === 'loading' && (
           <>
             <Loader size={36} className="text-accent animate-spin" />
@@ -59,39 +70,71 @@ export default function VerifyEmail() {
 
         {status === 'success' && (
           <>
-            <CheckCircle size={36} className="text-success" />
-            <div>
-              <p className="text-text-primary font-medium text-sm mb-1">Email verified!</p>
-              <p className="text-text-muted text-xs">Redirecting you to the dashboard…</p>
+            <div className="w-14 h-14 bg-success/10 rounded-2xl flex items-center justify-center">
+              <MailCheck size={26} className="text-success" />
             </div>
+            <div className="space-y-1">
+              <p className="text-text-primary font-display font-semibold text-base">
+                Email verified!
+              </p>
+              {verifiedEmail && (
+                <p className="text-accent text-sm font-medium">{verifiedEmail}</p>
+              )}
+              <p className="text-text-muted text-sm">
+                Your account is ready. You can now sign in.
+              </p>
+            </div>
+            <Link
+              to="/dashboard"
+              className="btn-primary w-full justify-center py-2.5 mt-1"
+            >
+              Go to dashboard
+            </Link>
           </>
         )}
 
         {status === 'already' && (
           <>
-            <CheckCircle size={36} className="text-warning" />
-            <div>
-              <p className="text-text-primary font-medium text-sm mb-1">Already verified</p>
-              <p className="text-text-muted text-xs">Redirecting you to sign in…</p>
+            <div className="w-14 h-14 bg-elevated rounded-2xl flex items-center justify-center">
+              <CheckCircle size={26} className="text-text-muted" />
             </div>
+            <div className="space-y-1">
+              <p className="text-text-primary font-display font-semibold text-base">
+                Already verified
+              </p>
+              <p className="text-text-muted text-sm">
+                This account has already been verified. Sign in to continue.
+              </p>
+            </div>
+            <Link
+              to="/auth/login"
+              className="btn-primary w-full justify-center py-2.5 mt-1"
+            >
+              Sign in
+            </Link>
           </>
         )}
 
         {status === 'error' && (
           <>
-            <XCircle size={36} className="text-error" />
-            <div>
-              <p className="text-text-primary font-medium text-sm mb-1">Verification failed</p>
-              <p className="text-text-muted text-xs mb-4">{errorMsg}</p>
-              <Link
-                to="/auth/resend-verification"
-                className="text-accent text-sm hover:underline"
-              >
-                Request a new verification link
-              </Link>
+            <div className="w-14 h-14 bg-error/10 rounded-2xl flex items-center justify-center">
+              <XCircle size={26} className="text-error" />
             </div>
+            <div className="space-y-1">
+              <p className="text-text-primary font-display font-semibold text-base">
+                Verification failed
+              </p>
+              <p className="text-text-muted text-sm">{errorMsg}</p>
+            </div>
+            <Link
+              to="/auth/resend-verification"
+              className="btn-primary w-full justify-center py-2.5 mt-1"
+            >
+              Request a new link
+            </Link>
           </>
         )}
+
       </div>
     </AuthLayout>
   );

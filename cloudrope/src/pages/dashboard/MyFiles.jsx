@@ -4,6 +4,7 @@ import { Upload, Download, Share2, Trash2, Files, AlertCircle, CloudUpload } fro
 import toast from 'react-hot-toast';
 import { fetchFiles, deleteFile } from '../../store/filesSlice';
 import { fetchTrash } from '../../store/trashSlice';
+import { fetchShares } from '../../store/sharesSlice';
 import { FileRowSkeleton } from '../../components/ui/Skeleton';
 import FileIcon from '../../components/ui/FileIcon';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -16,6 +17,7 @@ import { useSearch } from '../../hooks/useSearch';
 import { usePagination } from '../../hooks/usePagination';
 import { formatDate } from '../../utils/formatters';
 import { extractErrorMessage } from '../../utils/errors';
+import { downloadFile } from '../../utils/download';
 
 const ALLOWED_ACCEPT = '.jpg,.jpeg,.png,.pdf,.txt';
 const PAGE_SIZE = 10;
@@ -87,6 +89,7 @@ export default function MyFiles() {
     try {
       await dispatch(deleteFile(deleteTarget.id)).unwrap();
       dispatch(fetchTrash());
+      dispatch(fetchShares()); // backend revokes all active shares on delete
       toast.success('File moved to trash.');
     } catch (err) {
       toast.error(extractErrorMessage({ response: { data: err } }));
@@ -210,15 +213,13 @@ export default function MyFiles() {
             <span className="hidden md:block text-text-muted text-xs">{file.size_display}</span>
             <span className="hidden md:block text-text-muted text-xs">{formatDate(file.uploaded_at)}</span>
             <div className="flex items-center gap-1 justify-end">
-              <a
-                href={`${import.meta.env.VITE_API_BASE || ''}/files/${file.id}/download/`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
                 className="p-1.5 rounded-md text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
                 title="Download"
+                onClick={() => downloadFile(file.id, file.original_name)}
               >
                 <Download size={14} />
-              </a>
+              </button>
               <button
                 className="p-1.5 rounded-md text-text-muted hover:text-success hover:bg-success/10 transition-colors"
                 title="Share"

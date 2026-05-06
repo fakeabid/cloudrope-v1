@@ -12,18 +12,18 @@ import { extractErrorMessage } from '../../utils/errors';
 export function ResendVerification() {
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { register, handleSubmit, setError, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async ({ email }) => {
     setIsLoading(true);
     try {
       await authAPI.resendVerification(email);
-      setSent(true);
-    } catch (err) {
-      const fieldErr = err.response?.data?.email?.[0];
-      if (fieldErr) setError('email', { message: fieldErr });
-      else setSent(true); // Always show success per spec
+    } catch (_) {
+      // Intentionally swallow all errors — showing any error here (including
+      // "already verified" or "not found") would allow attacker enumeration.
+      // The backend should also always return 200, but we enforce it here too.
     } finally {
+      setSent(true);
       setIsLoading(false);
     }
   };
