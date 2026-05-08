@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { CloudUpload, Shield, Share2, Zap, ArrowRight, Lock, RefreshCw } from 'lucide-react';
+import { Shield, Share2, Zap, ArrowRight, Lock, RefreshCw } from 'lucide-react';
+import logo from '../assets/logo.svg'
 
 const features = [
   {
@@ -33,35 +34,43 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-bg grid-bg flex flex-col">
       {/* Nav */}
-      <header className="flex items-center justify-between px-8 py-5 border-b border-border/50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-accent rounded-lg flex items-center justify-center">
-            <CloudUpload size={14} className="text-white" />
+      <header className="fixed top-6 inset-x-0 mx-auto z-50 w-[90%] max-w-3xl">
+        <div className="flex items-center justify-between px-6 py-2 bg-white/60 hover:bg-white backdrop-blur-md border border-white/20 rounded-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
+          {/* Logo */}
+          <Link to="/" className="flex items-center mt-2 gap-1 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center">
+              <img src={logo} alt="Cloudrope Logo" className="w-8 h-8" />
+            </div>
+            <span className="font-display font-extrabold text-text-primary text-sm tracking-wide flex">
+              cloud<span className='text-accent flex'>rope</span>
+            </span>
+          </Link>
+
+          {/* Buttons */}
+          <div className="flex items-center gap-3">
+            <Link to="/auth/login" className="btn-secondary py-1.5 text-sm">
+              Sign in
+            </Link>
+            <Link to="/auth/register" className="btn-primary py-1.5 text-sm shadow-md shadow-accent/20">
+              Get started
+            </Link>
           </div>
-          <span className="font-display font-bold text-text-primary text-lg tracking-tight">
-            Cloudrope
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link to="/auth/login" className="btn-secondary py-1.5 text-sm">Sign in</Link>
-          <Link to="/auth/register" className="btn-primary py-1.5 text-sm">Get started</Link>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center flex-1 px-8 py-24 text-center animate-fade-in">
+      <section className="flex flex-col items-center justify-center flex-1 px-8 py-24 mt-10 text-center animate-fade-in">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full text-accent text-xs font-medium mb-8">
           <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse-slow" />
           Personal file storage, simplified
         </div>
 
         <h1 className="font-display font-extrabold text-5xl md:text-7xl text-text-primary leading-[1.05] tracking-tight max-w-3xl mb-6">
-          Your files,{' '}
-          <span className="text-accent relative">
-            wherever
-            <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent/30 rounded-full" />
+          welcome to the{' '}
+          <span className="text-accent">
+            revolutionization
           </span>{' '}
-          you need them.
+          of file sharing<img src={logo} alt="Cloudrope Logo" className="inline w-20 h-20" />
         </h1>
 
         <p className="text-text-muted text-lg max-w-xl leading-relaxed mb-10">
@@ -73,9 +82,6 @@ export default function Landing() {
           <Link to="/auth/register" className="btn-primary px-6 py-3 text-base">
             Create free account
             <ArrowRight size={16} />
-          </Link>
-          <Link to="/auth/login" className="btn-secondary px-6 py-3 text-base">
-            Sign in
           </Link>
         </div>
       </section>

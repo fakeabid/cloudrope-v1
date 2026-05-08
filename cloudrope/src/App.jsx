@@ -12,7 +12,9 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyEmail from './pages/auth/VerifyEmail';
 import { ResendVerification, ForgotPassword, ResetPassword } from './pages/auth/AuthForms';
+import Dashboard from './pages/dashboard/Dashboard';
 import MyFiles from './pages/dashboard/MyFiles';
+import Favorites from './pages/dashboard/Favorites';
 import Trash from './pages/dashboard/Trash';
 import Shares from './pages/dashboard/Shares';
 import Settings from './pages/dashboard/Settings';
@@ -32,7 +34,9 @@ export default function App() {
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-              <Route index element={<MyFiles />} />
+              <Route index element={<Dashboard />} />
+              <Route path="files" element={<MyFiles />} />
+              <Route path="favorites" element={<Favorites />} />
               <Route path="trash" element={<Trash />} />
               <Route path="shares" element={<Shares />} />
               <Route path="settings" element={<Settings />} />
@@ -41,19 +45,15 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster
-            position="bottom-right"
+            position="top-center"
             toastOptions={{
               style: {
-                background: '#1C1F2A',
-                color: '#E8EAF0',
-                border: '1px solid #252836',
-                borderRadius: '10px',
-                fontSize: '13px',
-                fontFamily: 'DM Sans, sans-serif',
-                padding: '10px 14px',
+                background: '#1C1F2A', color: '#E8EAF0',
+                border: '1px solid #252836', borderRadius: '20px',
+                fontSize: '13px', fontFamily: 'inherit', padding: '10px 14px',
               },
               success: { iconTheme: { primary: '#22C55E', secondary: '#1C1F2A' } },
-              error: { iconTheme: { primary: '#EF4444', secondary: '#1C1F2A' } },
+              error:   { iconTheme: { primary: '#EF4444', secondary: '#1C1F2A' } },
             }}
           />
         </BrowserRouter>

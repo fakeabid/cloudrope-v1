@@ -7,10 +7,12 @@ import Badge from '../../components/ui/Badge';
 import CopyButton from '../../components/ui/CopyButton';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import SearchBar from '../../components/ui/SearchBar';
+import SortFilterBar from '../../components/ui/SortFilterBar';
 import Pagination from '../../components/ui/Pagination';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useSearch } from '../../hooks/useSearch';
 import { usePagination } from '../../hooks/usePagination';
+import { useSortFilter, SHARE_SORT_OPTIONS, SHARE_FILTER_OPTIONS } from '../../hooks/useSortFilter';
 import { formatDateTime } from '../../utils/formatters';
 import { extractErrorMessage } from '../../utils/errors';
 
@@ -20,14 +22,13 @@ export default function Shares() {
   const dispatch = useDispatch();
   const { items, status } = useSelector((s) => s.shares);
   const [revokeTarget, setRevokeTarget] = useState(null);
-  const [isRevoking, setIsRevoking] = useState(false);
+  const [isRevoking,   setIsRevoking]   = useState(false);
 
-  useEffect(() => {
-    if (status === 'idle') dispatch(fetchShares());
-  }, [dispatch, status]);
+  useEffect(() => { if (status === 'idle') dispatch(fetchShares()); }, [dispatch, status]);
 
-  const sorted = [...items].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const { query, setQuery, filtered, hasQuery } = useSearch(sorted, ['file_name']);
+  const { sortKey, setSortKey, filterKey, setFilterKey, processed } =
+    useSortFilter(items, SHARE_SORT_OPTIONS, SHARE_FILTER_OPTIONS, 'date_desc');
+  const { query, setQuery, filtered, hasQuery } = useSearch(processed, ['file_name']);
   const { page, setPage, totalPages, paged, from, to, totalItems } = usePagination(filtered, PAGE_SIZE);
 
   const handleRevoke = async () => {
@@ -36,12 +37,8 @@ export default function Shares() {
     try {
       await dispatch(revokeShare(revokeTarget.id)).unwrap();
       toast.success('Share revoked.');
-    } catch (err) {
-      toast.error(extractErrorMessage({ response: { data: err } }));
-    } finally {
-      setIsRevoking(false);
-      setRevokeTarget(null);
-    }
+    } catch (err) { toast.error(extractErrorMessage({ response: { data: err } })); }
+    finally { setIsRevoking(false); setRevokeTarget(null); }
   };
 
   const shareUrl = (token) => `${window.location.origin}/shared/${token}`;
@@ -54,14 +51,18 @@ export default function Shares() {
       </div>
 
       {(items.length > 0 || hasQuery) && (
-        <div className="mb-4">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
           <SearchBar query={query} setQuery={setQuery} placeholder="Search by file name…" className="max-w-xs" />
+          <SortFilterBar
+            sortOptions={SHARE_SORT_OPTIONS} sortKey={sortKey} setSortKey={setSortKey}
+            filterOptions={SHARE_FILTER_OPTIONS} filterKey={filterKey} setFilterKey={setFilterKey}
+          />
         </div>
       )}
 
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1.5fr_80px_130px_130px_120px_100px_80px] items-center px-4 py-2.5 border-b border-border bg-elevated/40 gap-3">
-          {['File', 'Status', 'Created', 'Expires', 'Downloads', 'Link', 'Action'].map((h) => (
+          {['File','Status','Created','Expires','Downloads','Link','Action'].map((h) => (
             <span key={h} className="text-text-muted text-xs font-medium">{h}</span>
           ))}
         </div>
@@ -70,10 +71,7 @@ export default function Shares() {
           <div className="p-4 space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex gap-3 items-center">
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 flex-1" /><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-24" />
               </div>
             ))}
           </div>
@@ -91,51 +89,33 @@ export default function Shares() {
             <div className="w-12 h-12 bg-elevated rounded-xl flex items-center justify-center">
               <Share2 size={20} className="text-text-muted" />
             </div>
-            <div>
-              <p className="text-text-primary text-sm font-medium">No share links yet</p>
-              <p className="text-text-muted text-xs mt-0.5">Share a file from My Files to see links here.</p>
-            </div>
+            <p className="text-text-primary text-sm font-medium">No share links yet</p>
+            <p className="text-text-muted text-xs">Share a file from My Files to see links here.</p>
           </div>
         )}
 
         {status === 'succeeded' && items.length > 0 && filtered.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <p className="text-text-muted text-sm">No shares match "<span className="text-text-primary">{query}</span>"</p>
-            <button onClick={() => setQuery('')} className="text-accent text-xs hover:underline">Clear search</button>
+            <p className="text-text-muted text-sm">No shares match your filters.</p>
+            <button onClick={() => { setQuery(''); setFilterKey('all'); }} className="text-accent text-xs hover:underline">Clear filters</button>
           </div>
         )}
 
         {status === 'succeeded' && paged.map((share) => (
-          <div
-            key={share.id}
-            className="grid grid-cols-1 lg:grid-cols-[1.5fr_80px_130px_130px_120px_100px_80px] gap-2 lg:gap-3 px-4 py-3.5 border-b border-border last:border-0 hover:bg-elevated/20 transition-colors"
-          >
-            <div className="flex items-center gap-2 min-w-0">
+          <div key={share.id} className="grid grid-cols-1 lg:grid-cols-[1.5fr_80px_130px_130px_120px_100px_80px] gap-2 lg:gap-3 px-4 py-3.5 border-b border-border last:border-0 hover:bg-elevated/20 transition-colors">
+            <div className="flex items-center min-w-0">
               <p className="text-text-primary text-sm truncate">{share.file_name}</p>
             </div>
-            <div className="flex items-center">
-              <Badge status={share.status} />
-            </div>
+            <div className="flex items-center"><Badge status={share.status} /></div>
             <span className="text-text-muted text-xs self-center">{formatDateTime(share.created_at)}</span>
+            <span className="text-text-muted text-xs self-center">{share.expires_at ? formatDateTime(share.expires_at) : 'Never'}</span>
             <span className="text-text-muted text-xs self-center">
-              {share.expires_at ? formatDateTime(share.expires_at) : 'Never'}
+              {share.max_downloads ? `${share.download_count} / ${share.max_downloads}` : `${share.download_count} / ∞`}
             </span>
-            <span className="text-text-muted text-xs self-center">
-              {share.max_downloads
-                ? `${share.download_count} / ${share.max_downloads}`
-                : `${share.download_count} / Unlimited`}
-            </span>
-            <div className="flex items-center">
-              <CopyButton text={shareUrl(share.token)} />
-            </div>
+            <div className="flex items-center"><CopyButton text={shareUrl(share.token)} /></div>
             <div className="flex items-center">
               {share.status === 'active' && (
-                <button
-                  className="text-xs text-error hover:underline transition-colors"
-                  onClick={() => setRevokeTarget(share)}
-                >
-                  Revoke
-                </button>
+                <button className="text-xs text-error hover:underline" onClick={() => setRevokeTarget(share)}>Revoke</button>
               )}
             </div>
           </div>
@@ -147,10 +127,8 @@ export default function Shares() {
       </div>
 
       <ConfirmDialog
-        isOpen={!!revokeTarget}
-        onClose={() => setRevokeTarget(null)}
-        onConfirm={handleRevoke}
-        isLoading={isRevoking}
+        isOpen={!!revokeTarget} onClose={() => setRevokeTarget(null)}
+        onConfirm={handleRevoke} isLoading={isRevoking}
         title="Revoke share?"
         message={`The share link for "${revokeTarget?.file_name}" will be permanently deactivated.`}
         confirmLabel="Revoke"

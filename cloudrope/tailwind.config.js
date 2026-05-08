@@ -7,21 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0A0B0F',
-        surface: '#12141A',
-        elevated: '#1C1F2A',
-        border: '#252836',
-        accent: '#4F8DFF',
-        'accent-hover': '#6B9FFF',
-        'text-primary': '#E8EAF0',
-        'text-muted': '#6B7280',
-        success: '#22C55E',
+        bg: '#F8FAFC',           // Very light blue-gray background
+        surface: '#FFFFFF',      // Pure white cards
+        elevated: '#F1F5F9',     // Subtle contrast for inputs/buttons
+        border: '#E2E8F0',       // Soft border
+        accent: '#0B7FFB',       // Vibrant Blue
+        'accent-hover': '#2563EB',
+        'text-primary': '#0F172A', // Deep Navy/Slate for readability
+        'text-muted': '#64748B',   // Slate gray for secondary text
+        success: '#10B981',
         error: '#EF4444',
         warning: '#F59E0B',
       },
       fontFamily: {
-        display: ['Syne', 'sans-serif'],
-        body: ['DM Sans', 'sans-serif'],
+        display: ['Comfortaa', 'sans-serif'],
+        body: ['SN Pro', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
