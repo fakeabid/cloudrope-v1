@@ -324,6 +324,7 @@ export default function Dashboard() {
 
   const handleShareModalClose = useCallback(() => {
     setShareQueue([]);
+    setIsSharingStaged(false);
   }, []);
 
   // ─── Cloud card drag handlers ──────────────────────────────────────────────
@@ -458,14 +459,15 @@ export default function Dashboard() {
       </div>
 
       {/* Share modal */}
-      {shareQueue.length > 0 && (
+      {(isSharingStaged || shareQueue.length > 0) && (
         <ShareModal
-          isOpen={isSharingStaged}
-          stagedFiles={staged} // Pass the raw staged files
-          onClose={() => setIsSharingStaged(false)}
+          file={shareQueue[0]} 
+          isOpen={isSharingStaged || shareQueue.length > 0}
+          stagedFiles={isSharingStaged ? staged : null}
+          onClose={handleShareModalClose}
           onShareSuccess={() => {
             clearAll(); // Clear staging only on success
-            setIsSharingStaged(false);
+            handleShareModalClose();
           }}
         />
       )}
