@@ -46,6 +46,7 @@ export const FILE_FILTER_OPTIONS = [
   { value: 'image', label: 'Images',  test: (f) => f.mime_type?.startsWith('image/') },
   { value: 'pdf',   label: 'PDF',     test: (f) => f.mime_type === 'application/pdf' },
   { value: 'text',  label: 'Text',    test: (f) => f.mime_type === 'text/plain' },
+  { value: 'archive', label: 'Archive', test: (f) => f.mime_type === 'application/zip' },
 ];
 
 export const TRASH_SORT_OPTIONS = [
@@ -60,9 +61,9 @@ export const TRASH_SORT_OPTIONS = [
 export const SHARE_SORT_OPTIONS = [
   { value: 'date_desc',      label: 'Newest first',      fn: (a, b) => new Date(b.created_at) - new Date(a.created_at) },
   { value: 'date_asc',       label: 'Oldest first',      fn: (a, b) => new Date(a.created_at) - new Date(b.created_at) },
-  { value: 'name_asc',       label: 'File name A → Z',   fn: (a, b) => a.file_name?.localeCompare(b.file_name) },
-  { value: 'name_desc',      label: 'File name Z → A',   fn: (a, b) => b.file_name?.localeCompare(a.file_name) },
-  { value: 'downloads_desc', label: 'Most downloads',    fn: (a, b) => b.download_count - a.download_count },
+  { value: 'name_asc',       label: 'Name A → Z',   fn: (a, b) => a.file_name?.localeCompare(b.file_name) },
+  { value: 'name_desc',      label: 'Name Z → A',   fn: (a, b) => b.file_name?.localeCompare(a.file_name) },
+  { value: 'downloads_desc', label: 'Downloads',    fn: (a, b) => b.download_count - a.download_count },
 ];
 
 export const SHARE_FILTER_OPTIONS = [

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
-import { Link2, ExternalLink } from 'lucide-react';
+import { Link as Link2, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../ui/Modal';
 import CopyButton from '../ui/CopyButton';

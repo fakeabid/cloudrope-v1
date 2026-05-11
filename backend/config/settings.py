@@ -185,11 +185,6 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
 ]
 
-# --- Authentication Backends ---
-AUTHENTICATION_BACKENDS = [
-    'apps.users.backends.CloudropeBackend',
-]
-
 
 # --- Email ---
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')

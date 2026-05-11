@@ -13,6 +13,7 @@ ALLOWED_MIME_TYPES = {
     'image/png',
     'application/pdf',
     'text/plain',
+    'application/zip'
 }
 
 

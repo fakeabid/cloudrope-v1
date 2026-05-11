@@ -16,7 +16,7 @@ import { useSortFilter, TRASH_SORT_OPTIONS, FILE_FILTER_OPTIONS } from '../../ho
 import { formatDateTime } from '../../utils/formatters';
 import { extractErrorMessage } from '../../utils/errors';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export default function Trash() {
   const dispatch = useDispatch();
@@ -55,15 +55,15 @@ export default function Trash() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl">
-      <div className="mb-5">
-        <h1 className="font-display font-bold text-text-primary text-2xl">Trash</h1>
-        <p className="text-text-muted text-sm mt-0.5">{items.length} deleted file{items.length !== 1 ? 's' : ''}</p>
+    <div className="h-full flex flex-col gap-6">
+      <div className="mt-5 md:mt-0">
+        <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">trash</h1>
+        <p className="pt-2 pl-2 text-text-muted text-sm">{items.length} deleted file{items.length !== 1 ? 's' : ''}</p>
       </div>
 
       {(items.length > 0 || hasQuery) && (
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <SearchBar query={query} setQuery={setQuery} placeholder="Search trash…" className="max-w-xs" />
+        <div className="flex flex-col items-center gap-3 animate-fade-in">
+          <SearchBar query={query} setQuery={setQuery} placeholder="Search trash…" className="md:w-[400px]" />
           <SortFilterBar
             sortOptions={TRASH_SORT_OPTIONS} sortKey={sortKey} setSortKey={setSortKey}
             filterOptions={FILE_FILTER_OPTIONS} filterKey={filterKey} setFilterKey={setFilterKey}
@@ -71,7 +71,7 @@ export default function Trash() {
         </div>
       )}
 
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden animate-slide-up">
         <div className="hidden md:grid grid-cols-[1fr_100px_160px_112px] items-center px-4 py-2.5 border-b border-border bg-elevated/40">
           <span className="text-text-muted text-xs font-medium">Name</span>
           <span className="text-text-muted text-xs font-medium">Size</span>

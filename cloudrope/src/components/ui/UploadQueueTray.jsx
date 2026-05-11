@@ -52,7 +52,7 @@ export default function UploadQueueTray({ queue, clearDone, retryItem, removeIte
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 w-80 bg-surface border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-slide-up">
+    <div className="fixed bottom-24 right-4 md:bottom-5 md:right-5 z-40 w-80 bg-surface border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden animate-slide-up">
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-elevated/40 transition-colors"

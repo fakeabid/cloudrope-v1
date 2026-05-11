@@ -45,14 +45,14 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-xl">
-      <div className="mb-6">
-        <h1 className="font-display font-bold text-text-primary text-2xl">Settings</h1>
-        <p className="text-text-muted text-sm mt-0.5">Manage your account</p>
+    <div className="h-full flex flex-col gap-6 max-w-xl">
+      <div className="mt-5 md:mt-0 mb-6">
+        <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">settings</h1>
+        <p className="pt-2 pl-2 text-text-muted text-sm">configure your app</p>
       </div>
 
       {/* Account info */}
-      <div className="card mb-6">
+      <div className="card duration-300 animate-slide-up">
         <h2 className="font-display font-semibold text-text-primary text-sm mb-4">Account information</h2>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -86,7 +86,7 @@ export default function Settings() {
       </div>
 
       {/* Danger zone */}
-      <div className="bg-error/5 border border-error/20 rounded-xl p-5">
+      <div className="bg-error/5 border border-error/20 rounded-xl p-5 duration-300 animate-slide-up">
         <h2 className="font-display font-semibold text-error text-sm mb-2">Danger zone</h2>
         <p className="text-text-muted text-sm leading-relaxed mb-4">
           Permanently deletes your account, all files, and all share links. 

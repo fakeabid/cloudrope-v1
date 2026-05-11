@@ -21,7 +21,7 @@ import { formatDate } from '../../utils/formatters';
 import { extractErrorMessage } from '../../utils/errors';
 import { downloadFile } from '../../utils/download';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export default function Favorites() {
   const dispatch = useDispatch();

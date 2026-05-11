@@ -1,12 +1,19 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
-import { useUploadQueue } from '../../hooks/useUploadQueue';
-import { useNavigate } from 'react-router-dom';
-import { Link2, X, Settings } from 'lucide-react';
-import { MAX_STORAGE_BYTES, formatFileSize } from '../../utils/formatters';
+import { useUploadContext } from '../../context/UploadContext';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { fetchFiles } from '../../store/filesSlice';
+import { fetchShares } from '../../store/sharesSlice';
+import { fetchTrash } from '../../store/trashSlice';
+import { X, Settings } from 'lucide-react';
+import { Link as Link2 } from 'lucide-react';
+import { MAX_STORAGE_BYTES } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 import cloudImg from '../../assets/cloud.png';
+import ShareModal from '../../components/ui/ShareModal';
+import JSZip from 'jszip';
+import { filesAPI } from '../../api/files';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -36,43 +43,58 @@ function ordinal(n) {
 }
 
 // ─── Storage Gauge (circular SVG) ────────────────────────────────────────────
-function StorageGauge({ usedPercent }) {
+function StorageGauge({ usedPercent, onCloud = false }) {
   const radius = 44;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - usedPercent / 100);
-  // Angle for the dot at the end of the arc
-  const angle = ((usedPercent / 100) * 360 - 90) * (Math.PI / 180);
-  const dotX = 60 + radius * Math.cos(angle);
-  const dotY = 60 + radius * Math.sin(angle);
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <svg width="120" height="120" viewBox="0 0 120 120">
-        {/* Track */}
-        <circle
-          cx="60" cy="60" r={radius}
-          fill="none" stroke="#DBEAFE" strokeWidth="18"
-          strokeLinecap="round"
-        />
-        {/* Progress */}
-        <circle
-          cx="60" cy="60" r={radius}
-          fill="none"
-          stroke="#2563EB"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transform: 'rotate(-90deg)', transformOrigin: '60px 60px', transition: 'stroke-dashoffset 0.6s ease' }}
-        />
-        {/* Dot at end of arc */}
-        {usedPercent > 2 && (
-          <circle cx={dotX} cy={dotY} r="7" fill="#2563EB" />
+    <div className={`flex flex-col items-center transition-all duration-300 ${
+      onCloud 
+        ? 'absolute top-1/2 -mt-5 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-80 lg:scale-105 pointer-events-none' 
+        : 'gap-2'
+    }`}> 
+      <div className="relative flex items-center justify-center drop-shadow-xl">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          {/* Track */}
+          <circle
+            cx="60" cy="60" r={radius}
+            fill="none" 
+            stroke={onCloud ? "rgba(219, 234, 254, 0.6)" : "#DBEAFE"} 
+            strokeWidth="18"
+            strokeLinecap="round"
+          />
+          {/* Progress */}
+          <circle
+            cx="60" cy="60" r={radius}
+            fill="none"
+            stroke="#2563EB"
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ 
+              transform: 'rotate(-90deg)', 
+              transformOrigin: '60px 60px', 
+              transition: 'stroke-dashoffset 0.6s ease' 
+            }}
+          />
+        </svg>
+        
+        {/* Percentage text inside the circle if onCloud */}
+        {onCloud && (
+          <p className="absolute font-bold text-xl text-text-primary">
+            {Math.round(usedPercent)}%
+          </p>
         )}
-        {/* Start dot */}
-        <circle cx="60" cy="16" r="7" fill="#2563EB" />
-      </svg>
-      <p className="font-bold text-3xl text-text-primary">{Math.round(usedPercent)}%</p>
+      </div>
+
+      {/* Original text position for the StatsPanel (non-cloud version) */}
+      {!onCloud && (
+        <p className="font-bold text-3xl text-text-primary">
+          {Math.round(usedPercent)}%
+        </p>
+      )}
     </div>
   );
 }
@@ -86,11 +108,11 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
   return (
     <div className="flex flex-col gap-3 animate-fade-up h-full">
       {/* Activity header */}
-      <div className="bg-surface rounded-2xl shadow-card p-8 h-full flex flex-col">
+      <div className="bg-surface rounded-2xl shadow-card p-5 h-full flex flex-col">
         <p className="text-sm text-text-muted font-medium mb-5">Activity</p>
 
         {/* Calendar strip */}
-        <div className="bg-elevated rounded-xl p-4 mb-5">
+        <div className="bg-elevated rounded-xl p-4 mb-5 hover:shadow-card-hover transition-shadow">
           <p className="text-sm font-medium text-text-primary mb-3">
             {DAY_NAMES[today.getDay()]}, {ordinal(today.getDate())} {MONTH_NAMES[today.getMonth()]}
           </p>
@@ -103,7 +125,7 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
               });
               return (
                 <div key={i} className="flex flex-col items-center gap-1">
-                  {hasExpiry && !isToday
+                  {hasExpiry
                     ? <span className="w-1.5 h-1.5 rounded-full bg-error" />
                     : <span className="w-1.5 h-1.5" />
                   }
@@ -136,29 +158,32 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
         </div>
 
         {/* Active shares + storage row */}
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-2 md:flex md:flex-col lg:grid lg:grid-cols-2 gap-5">
           {/* Active shares */}
           <button
             onClick={() => navigate('/dashboard/shares')}
-            className="flex-1 bg-elevated rounded-xl p-4 text-left hover:shadow-card-hover transition-shadow"
+            className="flex-1 bg-elevated text-center rounded-xl p-4 hover:shadow-card-hover transition-shadow"
           >
-            <p className="text-sm text-text-muted mb-1">Active Shares</p>
-            <div className="flex items-center gap-2">
-              <p className="font-display font-bold text-3xl text-text-primary">{activeSharesCount}</p>
-              <Link2 size={20} className="text-text-primary" />
+            <p className="text-sm text-text-muted mb-4">Active Shares</p>
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-accent font-bold text-4xl">{activeSharesCount}</p>
+              <Link2 size={25} strokeWidth={3} className="text-accent" />
             </div>
           </button>
 
           {/* Storage gauge */}
-          <div className="flex-1 bg-accent-light rounded-xl p-4 flex flex-col items-center justify-center">
+          <button 
+            onClick={() => navigate('/dashboard/files')}
+            className="flex-1 bg-accent-light rounded-xl p-4 flex flex-col items-center justify-center hover:shadow-card-hover transition-shadow"
+          >
             <StorageGauge usedPercent={usedPercent} />
-          </div>
+          </button>
         </div>
 
         {/* Settings shortcut */}
         <button
           onClick={() => navigate('/dashboard/settings')}
-          className="mt-5 w-full bg-elevated rounded-xl px-4 py-5 text-sm font-medium text-text-muted hover:text-text-primary hover:shadow-card-hover transition-all flex items-center gap-2"
+          className="flex md:hidden lg:flex mt-5 w-full bg-elevated rounded-xl px-4 py-5 text-sm font-medium text-text-muted hover:text-text-primary hover:shadow-card-hover transition-all items-center gap-2"
         >
           <Settings size={15} />
           Settings
@@ -169,7 +194,7 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
 }
 
 // ─── Upload List Panel ────────────────────────────────────────────────────────
-function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare }) {
+function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, isZipping }) {
   return (
     <div className="bg-surface rounded-2xl shadow-card p-5 animate-fade-up flex flex-col md:h-full" style={{ minHeight: 360 }}>
       <div className="flex items-center justify-between mb-4">
@@ -216,31 +241,56 @@ function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare }
         </button>
         <button
           onClick={onShare}
-          disabled={staged.length === 0}
+          disabled={staged.length === 0 || isZipping}
           className="btn-dark"
         >
-          Share
+          {isZipping ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {staged.length > 1 ? 'Zipping…' : 'Uploading…'}
+            </span>
+          ) : 'Share'}
         </button>
       </div>
+
     </div>
   );
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const dispatch = useDispatch();
   const { user } = useAuth();
+  const { staged, setStaged, stageFiles } = useOutletContext();
+
   const activeFiles  = useSelector((s) => s.files.items);
   const trashFiles   = useSelector((s) => s.trash.items);
   const shares       = useSelector((s) => s.shares.items);
 
-  const [panelMode, setPanelMode] = useState('stats'); // 'stats' | 'upload'
-  const [staged, setStaged]       = useState([]);      // { id, file }
+  useEffect(() => {
+    dispatch(fetchFiles()); 
+    dispatch(fetchShares());
+    dispatch(fetchTrash());
+  }, [dispatch]);
+
+  const [panelMode, setPanelMode] = useState(staged.length > 0 ? 'upload' : 'stats'); // 'stats' | 'upload'
+  const [shareQueue, setShareQueue] = useState([]);      // uploaded files awaiting ShareModal
+  const [isZipping,  setIsZipping]  = useState(false);    // true while zipping + uploading
   const [isDragging, setIsDragging] = useState(false);
+  const [isSharingStaged, setIsSharingStaged] = useState(false);
   const dragCounter = useRef(0);
   const fileInputRef = useRef(null);
   const idRef = useRef(0);
 
-  const { enqueue } = useUploadQueue();
+  const { enqueue } = useUploadContext();
+
+  useEffect(() => {
+    if (staged.length > 0) {
+      setPanelMode('upload');
+    } else {
+      setPanelMode('stats');
+    }
+  }, [staged.length]);
 
   // Computed values
   const totalUsed   = [...activeFiles, ...trashFiles].reduce((a, f) => a + (f.size || 0), 0);
@@ -253,28 +303,13 @@ export default function Dashboard() {
     s.expires_at && new Date(s.expires_at).getTime() - now < sevenDays
   );
 
-  // ─── Staging helpers ───────────────────────────────────────────────────────
-  const stageFiles = useCallback((files) => {
-    const items = Array.from(files).map(file => ({
-      id: ++idRef.current,
-      file,
-    }));
-    setStaged(prev => [...prev, ...items]);
-    setPanelMode('upload');
-  }, []);
-
   const removeStaged = useCallback((id) => {
-    setStaged(prev => {
-      const next = prev.filter(i => i.id !== id);
-      if (next.length === 0) setPanelMode('stats');
-      return next;
-    });
-  }, []);
+    setStaged(prev => prev.filter(i => i.id !== id));
+  }, [setStaged]);
 
   const clearAll = useCallback(() => {
     setStaged([]);
-    setPanelMode('stats');
-  }, []);
+  }, [setStaged]);
 
   const handleUploadOnly = useCallback(() => {
     const { rejected } = enqueue(staged.map(i => i.file));
@@ -283,12 +318,13 @@ export default function Dashboard() {
   }, [staged, enqueue, clearAll]);
 
   const handleShare = useCallback(() => {
-    // Upload + navigate to shares after (for now same as upload)
-    const { rejected } = enqueue(staged.map(i => i.file));
-    rejected.forEach(({ name, reason }) => toast.error(`${name}: ${reason}`));
-    clearAll();
-    toast.success('Files queued — share links coming soon!');
-  }, [staged, enqueue, clearAll]);
+    if (staged.length === 0) return;
+    setIsSharingStaged(true); // Just open the modal
+  }, [staged.length]);
+
+  const handleShareModalClose = useCallback(() => {
+    setShareQueue([]);
+  }, []);
 
   // ─── Cloud card drag handlers ──────────────────────────────────────────────
   const onCloudDragEnter = useCallback((e) => {
@@ -326,17 +362,17 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10 h-full">
 
-      <h1 className="md:hidden font-display font-bold text-3xl text-text-primary px-1 pt-1">
-        {getGreeting(user?.full_name)}
+      <h1 className="md:hidden mt-5 font-display font-bold text-3xl text-text-primary px-1 pt-1">
+        {panelMode === 'stats' ? getGreeting(user?.full_name) : 'file upload'}
       </h1>
-      <div className='hidden md:flex flex-col gap-16'>
+      <div className='hidden md:flex flex-col gap-8'>
         {/* Greeting */}
-        <h1 className="font-display font-bold text-3xl md:text-4xl text-text-primary px-1 pt-1">
-          {getGreeting(user?.full_name)}
+        <h1 className="font-display pt-2 pl-2 font-semibold text-3xl text-text-primary">
+          {panelMode === 'stats' ? getGreeting(user?.full_name) : 'file upload'}
         </h1>
         {/* ── Cloud card ── */}
         <div
-          className={`flex-1 bg-surface rounded-2xl shadow-card flex flex-col items-center justify-center hover:cursor-pointer select-none transition-all duration-200 relative overflow-hidden
+          className={`flex-1 bg-surface rounded-2xl shadow-card flex flex-col items-center justify-center hover:cursor-pointer select-none transition-all duration-300 animate-slide-up relative overflow-hidden
             ${isDragging ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg animate-pulse' : 'hover:shadow-card-hover'}`}
           style={{ minHeight: 400 }}
           onDragEnter={onCloudDragEnter}
@@ -355,7 +391,7 @@ export default function Dashboard() {
           />
 
           {/* Drag hint text */}
-          <p className="text-text-muted text-sm mb-6 pointer-events-none">
+          <p className="text-text-muted text-lg font-light mb-6 pointer-events-none">
             drag and drop files
           </p>
 
@@ -363,13 +399,15 @@ export default function Dashboard() {
           <img
             src={cloudImg}
             alt="cloud"
-            className={`w-64 md:w-72 lg:w-80 h-auto pointer-events-none transition-all duration-500 ${
-              isDragging ? 'scale-105 drop-shadow-lg' : ''
+            className={`w-64 md:w-72 lg:w-80 h-auto pointer-events-none transition-all duration-500 ease-in-out ${
+              isDragging ? 'scale-105 drop-shadow-[0_10px_20px_rgba(59,130,246,0.6)]' : ''
             } ${
-              panelMode === 'upload' ? 'animate-pulse-slow drop-shadow-[0_10px_8px_rgba(59,130,246,0.2)]' : ''
+              panelMode === 'upload' ? 'animate-pulse-slow drop-shadow-[0_10px_20px_rgba(59,130,246,0.6)]' : ''
             }`}
             draggable={false}
           />
+
+          <StorageGauge usedPercent={usedPercent} onCloud={true}/>
 
           {/* Label */}
           <p className="font-display font-semibold text-2xl text-text-primary mt-6 pointer-events-none">
@@ -383,7 +421,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Right panel ── */}
       {/* ── Right panel ── */}
       <div className="grid grid-cols-1 grid-rows-1">
         {/* Stats panel */}
@@ -415,9 +452,23 @@ export default function Dashboard() {
             onClearAll={clearAll}
             onUploadOnly={handleUploadOnly}
             onShare={handleShare}
+            isZipping={isZipping}
           />
         </div>
       </div>
-  </div>
+
+      {/* Share modal */}
+      {shareQueue.length > 0 && (
+        <ShareModal
+          isOpen={isSharingStaged}
+          stagedFiles={staged} // Pass the raw staged files
+          onClose={() => setIsSharingStaged(false)}
+          onShareSuccess={() => {
+            clearAll(); // Clear staging only on success
+            setIsSharingStaged(false);
+          }}
+        />
+      )}
+    </div>
   );
 }

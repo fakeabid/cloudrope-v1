@@ -9,7 +9,7 @@ export default function SortFilterBar({
   setFilterKey,
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-4">
+    <div className="flex flex-wrap justify-center items-center gap-2 mb-4">
       {/* Sort dropdown */}
       <div className="relative flex items-center">
         <ArrowUpDown size={12} className="absolute left-2.5 text-text-muted pointer-events-none" />

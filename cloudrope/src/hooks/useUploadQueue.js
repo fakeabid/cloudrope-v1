@@ -4,21 +4,23 @@ import { uploadFile } from '../store/filesSlice';
 import { fetchTrash } from '../store/trashSlice';
 import { extractErrorMessage } from '../utils/errors';
 
-// Each queue item shape:
-// { id, file, status: 'pending'|'uploading'|'done'|'error', progress: 0, errorMsg: '' }
+// Each queue item shape (state-safe — no functions stored in state):
+// { id, file, status: 'pending'|'uploading'|'done'|'error', progress, errorMsg }
 
 let idCounter = 0;
 function makeId() { return ++idCounter; }
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'application/pdf', 'text/plain']);
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 export function useUploadQueue() {
   const dispatch = useDispatch();
   const [queue, setQueue] = useState([]);
   const processingRef = useRef(false);
-  // Keep a stable ref to the queue so the processor always sees the latest
-  const queueRef = useRef(queue);
+  const queueRef      = useRef(queue);
+  // Store per-item callbacks outside of state to avoid serialisation issues
+  const callbacksRef  = useRef({});
+
   useEffect(() => { queueRef.current = queue; }, [queue]);
 
   const updateItem = useCallback((id, patch) => {
@@ -38,7 +40,7 @@ export function useUploadQueue() {
     formData.append('file', pending.file);
 
     try {
-      await dispatch(uploadFile({
+      const result = await dispatch(uploadFile({
         formData,
         onProgress: (evt) => {
           if (evt.total) {
@@ -46,9 +48,16 @@ export function useUploadQueue() {
           }
         },
       })).unwrap();
+
       updateItem(pending.id, { status: 'done', progress: 100 });
-      // Refresh trash storage count
       dispatch(fetchTrash());
+
+      // Fire optional per-item callback (e.g. auto-share after upload)
+      const cb = callbacksRef.current[pending.id];
+      if (cb) {
+        try { await cb(result); } catch (_) { /* don't break queue on callback error */ }
+        delete callbacksRef.current[pending.id];
+      }
     } catch (err) {
       updateItem(pending.id, {
         status: 'error',
@@ -56,18 +65,20 @@ export function useUploadQueue() {
       });
     } finally {
       processingRef.current = false;
-      // Yield one tick so queueRef reflects the update before we recurse
       setTimeout(() => processNext(), 0);
     }
   }, [dispatch, updateItem]);
 
-  // Kick off processor whenever queue changes
   useEffect(() => {
     const hasPending = queue.some((i) => i.status === 'pending');
     if (hasPending && !processingRef.current) processNext();
   }, [queue, processNext]);
 
-  const enqueue = useCallback((files) => {
+  /**
+   * @param {FileList|File[]} files
+   * @param {{ onComplete?: (uploadedFile: object) => void }} options
+   */
+  const enqueue = useCallback((files, { onComplete } = {}) => {
     const fileArray = Array.from(files);
     const valid = [];
     const rejected = [];
@@ -78,7 +89,9 @@ export function useUploadQueue() {
       } else if (file.size > MAX_FILE_BYTES) {
         rejected.push({ name: file.name, reason: 'Exceeds 10 MB limit' });
       } else {
-        valid.push({ id: makeId(), file, status: 'pending', progress: 0, errorMsg: '' });
+        const id = makeId();
+        if (onComplete) callbacksRef.current[id] = onComplete;
+        valid.push({ id, file, status: 'pending', progress: 0, errorMsg: '' });
       }
     }
 
@@ -95,11 +108,12 @@ export function useUploadQueue() {
   }, []);
 
   const removeItem = useCallback((id) => {
+    delete callbacksRef.current[id];
     setQueue((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
-  const isActive = queue.some((i) => i.status === 'pending' || i.status === 'uploading');
-  const doneCount = queue.filter((i) => i.status === 'done').length;
+  const isActive   = queue.some((i) => i.status === 'pending' || i.status === 'uploading');
+  const doneCount  = queue.filter((i) => i.status === 'done').length;
   const errorCount = queue.filter((i) => i.status === 'error').length;
 
   return { queue, enqueue, clearDone, retryItem, removeItem, isActive, doneCount, errorCount };

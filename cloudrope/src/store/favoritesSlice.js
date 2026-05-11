@@ -1,16 +1,33 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const STORAGE_KEY = 'cr_favorites';
+// Favorites are scoped per user ID to prevent cross-user leakage.
+const STORAGE_KEY = (userId) => `cr_favorites_${userId}`;
 
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+export function loadFavorites(userId) {
+  if (!userId) return [];
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY(userId)) || '[]'); }
   catch { return []; }
+}
+
+function saveFavorites(userId, ids) {
+  if (!userId) return;
+  localStorage.setItem(STORAGE_KEY(userId), JSON.stringify(ids));
+}
+
+function clearFavoritesForUser(userId) {
+  if (userId) localStorage.removeItem(STORAGE_KEY(userId));
 }
 
 const favoritesSlice = createSlice({
   name: 'favorites',
-  initialState: { ids: load() },
+  initialState: { ids: [], userId: null },
   reducers: {
+    initFavorites(state, action) {
+      // Call this after login with the logged-in user's ID.
+      const userId = action.payload;
+      state.userId = userId;
+      state.ids    = loadFavorites(userId);
+    },
     toggleFavorite(state, action) {
       const id = action.payload;
       if (state.ids.includes(id)) {
@@ -18,18 +35,24 @@ const favoritesSlice = createSlice({
       } else {
         state.ids.push(id);
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.ids));
+      saveFavorites(state.userId, state.ids);
     },
     removeFavorite(state, action) {
       state.ids = state.ids.filter((i) => i !== action.payload);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.ids));
+      saveFavorites(state.userId, state.ids);
     },
     clearFavorites(state) {
-      state.ids = [];
-      localStorage.removeItem(STORAGE_KEY);
+      clearFavoritesForUser(state.userId);
+      state.ids    = [];
+      state.userId = null;
     },
+  },
+  extraReducers: (builder) => {
+    // When the store is globally reset, wipe favorites state
+    // (localStorage entry is kept so it persists for when they log back in).
+    builder.addCase('store/reset', () => ({ ids: [], userId: null }));
   },
 });
 
-export const { toggleFavorite, removeFavorite, clearFavorites } = favoritesSlice.actions;
+export const { initFavorites, toggleFavorite, removeFavorite, clearFavorites } = favoritesSlice.actions;
 export default favoritesSlice.reducer;

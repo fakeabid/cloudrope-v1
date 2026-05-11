@@ -22,7 +22,7 @@ import { extractErrorMessage } from '../../utils/errors';
 import { downloadFile } from '../../utils/download';
 
 const ALLOWED_ACCEPT = '.jpg,.jpeg,.png,.pdf,.txt';
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export default function MyFiles() {
   const dispatch    = useDispatch();
@@ -71,11 +71,11 @@ export default function MyFiles() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="font-display font-bold text-text-primary text-2xl">My Files</h1>
-          <p className="text-text-muted text-sm mt-0.5">{files.length} file{files.length !== 1 ? 's' : ''}</p>
+    <div className="h-full flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className='mt-5 md:mt-0'>
+          <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">files</h1>
+          <p className="pt-2 pl-2 text-text-muted text-sm">{files.length} file{files.length !== 1 ? 's' : ''}</p>
         </div>
         <div>
           <input
@@ -83,15 +83,15 @@ export default function MyFiles() {
             accept={ALLOWED_ACCEPT} multiple
             className="hidden" onChange={handleFileChange}
           />
-          <button className="btn-primary" onClick={() => fileInputRef.current?.click()}>
-            <Upload size={15} />Upload files
+          <button className="btn-primary rounded-full" onClick={() => fileInputRef.current?.click()}>
+            +
           </button>
         </div>
       </div>
 
       {(files.length > 0 || hasQuery) && (
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <SearchBar query={query} setQuery={setQuery} placeholder="Search files…" className="max-w-xs" />
+        <div className="flex flex-col items-center gap-3 animate-fade-in">
+          <SearchBar query={query} setQuery={setQuery} placeholder="Search files…" className="md:w-[400px]" />
           <SortFilterBar
             sortOptions={FILE_SORT_OPTIONS} sortKey={sortKey} setSortKey={setSortKey}
             filterOptions={FILE_FILTER_OPTIONS} filterKey={filterKey} setFilterKey={setFilterKey}
@@ -99,7 +99,7 @@ export default function MyFiles() {
         </div>
       )}
 
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden animate-slide-up">
         <div className="hidden md:grid grid-cols-[1fr_100px_120px_148px] items-center px-4 py-2.5 border-b border-border bg-elevated/40">
           <span className="text-text-muted text-xs font-medium">Name</span>
           <span className="text-text-muted text-xs font-medium">Size</span>

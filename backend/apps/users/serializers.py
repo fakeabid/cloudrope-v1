@@ -107,20 +107,14 @@ class LoginSerializer(serializers.Serializer):
         )
 
         if not user:
-            # authenticate() returns None for both wrong credentials AND deleted accounts
-            # (because user_can_authenticate now blocks deleted users).
-            # Only reveal the distinction if the password is correct — otherwise
-            # an attacker could enumerate deleted accounts.
             try:
-                deleted_user = User.all_objects.get(email=email, deleted_at__isnull=False)
-                if deleted_user.check_password(password):
+                deleted_user = User.all_objects.get(email=email)
+                if deleted_user.check_password(password) and deleted_user.deleted_at is not None:
                     raise serializers.ValidationError(
                         "This account has been deleted. Please contact support if you believe this is a mistake."
                     )
             except User.DoesNotExist:
-                pass
-
-            raise serializers.ValidationError("Invalid credentials. Please try again.")
+                raise serializers.ValidationError("Invalid credentials. Please try again.")
 
         if not user.is_active:
             raise serializers.ValidationError(
