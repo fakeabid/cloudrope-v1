@@ -10,7 +10,6 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState('loading'); // loading | success | already | error
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const { updateTokens, updateUser } = useAuth();
   const token = searchParams.get('token');
   const calledRef = useRef(false);
 
@@ -31,17 +30,10 @@ export default function VerifyEmail() {
       try {
         const { data } = await authAPI.verifyEmail(token);
 
-        if (data.tokens) {
-          // Verified fresh — store credentials so they're logged in when
-          // they navigate to the dashboard from the success screen.
-          updateTokens(data.tokens);
-          if (data.user) {
-            updateUser(data.user);
-            setVerifiedEmail(data.user.email);
-          }
+        if (data.user) {
+          setVerifiedEmail(data.user.email);
           setStatus('success');
         } else {
-          // Already verified — no tokens returned
           setStatus('already');
         }
       } catch (err) {
@@ -85,10 +77,10 @@ export default function VerifyEmail() {
               </p>
             </div>
             <Link
-              to="/dashboard"
+              to="/auth/login"
               className="btn-primary w-full justify-center py-2.5 mt-1"
             >
-              Go to dashboard
+              Sign In
             </Link>
           </>
         )}

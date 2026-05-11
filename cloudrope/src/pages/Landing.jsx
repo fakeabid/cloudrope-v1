@@ -70,7 +70,7 @@ export default function Landing() {
           <span className="text-accent">
             revolutionization
           </span>{' '}
-          of file sharing<img src={logo} alt="Cloudrope Logo" className="inline w-20 h-20" />
+          of file sharing<img src={logo} alt="Cloudrope Logo" className="inline w-20 h-20 animate-pulse" />
         </h1>
 
         <p className="text-text-muted text-lg max-w-xl leading-relaxed mb-10">

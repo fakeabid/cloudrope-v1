@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Upload, CheckCircle, XCircle, Loader, ChevronDown, ChevronUp,
+  CheckCircle, XCircle, Loader, ChevronDown, ChevronUp,
   RotateCcw, X, Trash2,
 } from 'lucide-react';
 

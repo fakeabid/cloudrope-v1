@@ -15,7 +15,7 @@ export default function AuthLayout({ children, title, subtitle }) {
       </Link>
 
       {/* Card */}
-      <div className="w-full max-w-sm bg-surface border border-border rounded-2xl p-7 animate-slide-up shadow-xl shadow-black/40">
+      <div className="w-full max-w-sm bg-surface border border-border rounded-2xl p-7 animate-slide-up shadow-xl shadow-black/20">
         <div className="mb-6">
           <h1 className="font-display font-bold text-text-primary text-xl mb-1">{title}</h1>
           {subtitle && <p className="text-text-muted text-sm">{subtitle}</p>}

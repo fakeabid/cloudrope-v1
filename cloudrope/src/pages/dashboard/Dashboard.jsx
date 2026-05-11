@@ -1,207 +1,423 @@
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { Files, Star, Share2, Trash2, Upload, ArrowRight, Download } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
-import { fetchFiles } from '../../store/filesSlice';
-import { fetchTrash } from '../../store/trashSlice';
-import { fetchShares } from '../../store/sharesSlice';
-import FileIcon from '../../components/ui/FileIcon';
-import Badge from '../../components/ui/Badge';
-import { formatFileSize, formatDate, MAX_STORAGE_BYTES } from '../../utils/formatters';
-import { downloadFile } from '../../utils/download';
+import { useUploadQueue } from '../../hooks/useUploadQueue';
+import { useNavigate } from 'react-router-dom';
+import { Link2, X, Settings } from 'lucide-react';
+import { MAX_STORAGE_BYTES, formatFileSize } from '../../utils/formatters';
+import toast from 'react-hot-toast';
+import cloudImg from '../../assets/cloud.png';
 
-function greeting(name) {
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function getGreeting(name) {
   const h = new Date().getHours();
-  const time = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  return `${time}, ${name}.`;
+  const time = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+  const first = name?.split(' ')[0]?.toLowerCase() || 'there';
+  return `good ${time}, ${first}`;
 }
 
-// Circular storage gauge using SVG
-function StorageGauge({ usedBytes, totalBytes }) {
-  const R = 44;
-  const circ = 2 * Math.PI * R;
-  const pct = Math.min(usedBytes / totalBytes, 1);
-  const offset = circ * (1 - pct);
-  const color = pct > 0.85 ? '#EF4444' : pct > 0.6 ? '#F59E0B' : '#4F8DFF';
+function getCalendarDates() {
+  const today = new Date();
+  return [-2, -1, 0, 1, 2].map(offset => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + offset);
+    return d;
+  });
+}
+
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+// ─── Storage Gauge (circular SVG) ────────────────────────────────────────────
+function StorageGauge({ usedPercent }) {
+  const radius = 44;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - usedPercent / 100);
+  // Angle for the dot at the end of the arc
+  const angle = ((usedPercent / 100) * 360 - 90) * (Math.PI / 180);
+  const dotX = 60 + radius * Math.cos(angle);
+  const dotY = 60 + radius * Math.sin(angle);
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-28 h-28">
-        <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r={R} fill="none" stroke="#1C1F2A" strokeWidth="10" />
-          <circle
-            cx="50" cy="50" r={R}
-            fill="none"
-            stroke={color}
-            strokeWidth="10"
-            strokeDasharray={circ}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="font-display font-bold text-text-primary text-base leading-tight">
-            {Math.round(pct * 100)}%
+    <div className="flex flex-col items-center gap-2">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        {/* Track */}
+        <circle
+          cx="60" cy="60" r={radius}
+          fill="none" stroke="#DBEAFE" strokeWidth="18"
+          strokeLinecap="round"
+        />
+        {/* Progress */}
+        <circle
+          cx="60" cy="60" r={radius}
+          fill="none"
+          stroke="#2563EB"
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transform: 'rotate(-90deg)', transformOrigin: '60px 60px', transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+        {/* Dot at end of arc */}
+        {usedPercent > 2 && (
+          <circle cx={dotX} cy={dotY} r="7" fill="#2563EB" />
+        )}
+        {/* Start dot */}
+        <circle cx="60" cy="16" r="7" fill="#2563EB" />
+      </svg>
+      <p className="font-bold text-3xl text-text-primary">{Math.round(usedPercent)}%</p>
+    </div>
+  );
+}
+
+// ─── Stats Panel ─────────────────────────────────────────────────────────────
+function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
+  const today = new Date();
+  const calDates = getCalendarDates();
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex flex-col gap-3 animate-fade-up h-full">
+      {/* Activity header */}
+      <div className="bg-surface rounded-2xl shadow-card p-8 h-full flex flex-col">
+        <p className="text-sm text-text-muted font-medium mb-5">Activity</p>
+
+        {/* Calendar strip */}
+        <div className="bg-elevated rounded-xl p-4 mb-5">
+          <p className="text-sm font-medium text-text-primary mb-3">
+            {DAY_NAMES[today.getDay()]}, {ordinal(today.getDate())} {MONTH_NAMES[today.getMonth()]}
           </p>
-          <p className="text-text-muted text-xs">used</p>
+          <div className="flex items-center justify-between">
+            {calDates.map((d, i) => {
+              const isToday = i === 2;
+              const hasExpiry = expiringShares.some(s => {
+                const exp = new Date(s.expires_at);
+                return exp.toDateString() === d.toDateString();
+              });
+              return (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  {hasExpiry && !isToday
+                    ? <span className="w-1.5 h-1.5 rounded-full bg-error" />
+                    : <span className="w-1.5 h-1.5" />
+                  }
+                  <span className={`font-medium text-base w-8 h-8 flex items-center justify-center rounded-full transition-all ${
+                    isToday
+                      ? 'text-accent font-bold'
+                      : 'text-text-muted'
+                  }`}>
+                    {d.getDate()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Expiry warning */}
+          <div className="mt-5 flex items-center gap-2 bg-white rounded-lg px-3 py-2">
+            {expiringShares.length > 0 ?
+              <>
+                <span className="w-2 h-2 rounded-full bg-error flex-shrink-0" />
+                <p className="text-sm text-text-muted">Shares expiring soon</p>
+              </>
+              :
+              <>
+                <span className="w-2 h-2 rounded-full bg-elevated flex-shrink-0" />
+                <p className="text-sm text-text-muted">All clear</p>
+              </>
+            }              
+          </div>
         </div>
-      </div>
-      <div className="text-center">
-        <p className="text-text-primary text-sm font-medium">
-          {formatFileSize(usedBytes)}
-          <span className="text-text-muted font-normal"> / {formatFileSize(totalBytes)}</span>
-        </p>
+
+        {/* Active shares + storage row */}
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-5">
+          {/* Active shares */}
+          <button
+            onClick={() => navigate('/dashboard/shares')}
+            className="flex-1 bg-elevated rounded-xl p-4 text-left hover:shadow-card-hover transition-shadow"
+          >
+            <p className="text-sm text-text-muted mb-1">Active Shares</p>
+            <div className="flex items-center gap-2">
+              <p className="font-display font-bold text-3xl text-text-primary">{activeSharesCount}</p>
+              <Link2 size={20} className="text-text-primary" />
+            </div>
+          </button>
+
+          {/* Storage gauge */}
+          <div className="flex-1 bg-accent-light rounded-xl p-4 flex flex-col items-center justify-center">
+            <StorageGauge usedPercent={usedPercent} />
+          </div>
+        </div>
+
+        {/* Settings shortcut */}
+        <button
+          onClick={() => navigate('/dashboard/settings')}
+          className="mt-5 w-full bg-elevated rounded-xl px-4 py-5 text-sm font-medium text-text-muted hover:text-text-primary hover:shadow-card-hover transition-all flex items-center gap-2"
+        >
+          <Settings size={15} />
+          Settings
+        </button>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, color, to }) {
-  const content = (
-    <div className={`card flex items-center gap-4 hover:border-${color}/30 transition-all duration-200 group`}>
-      <div className={`w-10 h-10 bg-${color}/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-${color}/20 transition-colors`}>
-        <Icon size={18} className={`text-${color}`} />
+// ─── Upload List Panel ────────────────────────────────────────────────────────
+function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare }) {
+  return (
+    <div className="bg-surface rounded-2xl shadow-card p-5 animate-fade-up flex flex-col md:h-full" style={{ minHeight: 360 }}>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm font-semibold text-text-primary">Upload List</p>
+        {staged.length > 0 && (
+          <button
+            onClick={onClearAll}
+            className="text-xs text-error font-medium hover:underline"
+          >
+            Clear All
+          </button>
+        )}
       </div>
-      <div>
-        <p className="text-text-muted text-xs">{label}</p>
-        <p className="text-text-primary font-display font-bold text-xl">{value}</p>
+
+      {/* File list */}
+      <div className="flex-1 space-y-2 mb-5">
+        {staged.length === 0 && (
+          <p className="text-sm text-text-muted text-center py-8">No files staged</p>
+        )}
+        {staged.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 bg-accent-light rounded-xl px-3 py-2.5"
+          >
+            <p className="flex-1 text-sm text-text-primary truncate">{item.file.name}</p>
+            <button
+              onClick={() => onRemove(item.id)}
+              className="text-error hover:bg-error/10 p-1 rounded transition-colors flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Action buttons */}
+      <div className="space-y-2">
+        <button
+          onClick={onUploadOnly}
+          disabled={staged.length === 0}
+          className="btn-primary-full"
+        >
+          Upload Only
+        </button>
+        <button
+          onClick={onShare}
+          disabled={staged.length === 0}
+          className="btn-dark"
+        >
+          Share
+        </button>
       </div>
     </div>
   );
-  return to ? <Link to={to}>{content}</Link> : content;
 }
 
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const dispatch = useDispatch();
   const { user } = useAuth();
+  const activeFiles  = useSelector((s) => s.files.items);
+  const trashFiles   = useSelector((s) => s.trash.items);
+  const shares       = useSelector((s) => s.shares.items);
 
-  const { items: files, status: filesStatus } = useSelector((s) => s.files);
-  const { items: trash, status: trashStatus  } = useSelector((s) => s.trash);
-  const { items: shares, status: sharesStatus } = useSelector((s) => s.shares);
-  const favoriteIds = useSelector((s) => s.favorites.ids);
+  const [panelMode, setPanelMode] = useState('stats'); // 'stats' | 'upload'
+  const [staged, setStaged]       = useState([]);      // { id, file }
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef(null);
+  const idRef = useRef(0);
 
-  useEffect(() => {
-    if (filesStatus  === 'idle') dispatch(fetchFiles());
-    if (trashStatus  === 'idle') dispatch(fetchTrash());
-    if (sharesStatus === 'idle') dispatch(fetchShares());
-  }, [dispatch, filesStatus, trashStatus, sharesStatus]);
+  const { enqueue } = useUploadQueue();
 
-  const totalUsed    = [...files, ...trash].reduce((a, f) => a + (f.size || 0), 0);
-  const recentFiles  = [...files]
-    .sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at))
-    .slice(0, 5);
-  const activeShares = shares.filter((s) => s.status === 'active').slice(0, 4);
-  const pinnedCount  = favoriteIds.filter((id) => files.some((f) => f.id === id)).length;
+  // Computed values
+  const totalUsed   = [...activeFiles, ...trashFiles].reduce((a, f) => a + (f.size || 0), 0);
+  const usedPercent = Math.min((totalUsed / MAX_STORAGE_BYTES) * 100, 100);
 
-  const isLoading = filesStatus === 'loading' || trashStatus === 'loading';
+  const activeShares   = shares.filter(s => s.status === 'active');
+  const now            = Date.now();
+  const sevenDays      = 7 * 24 * 3600 * 1000;
+  const expiringShares = activeShares.filter(s =>
+    s.expires_at && new Date(s.expires_at).getTime() - now < sevenDays
+  );
+
+  // ─── Staging helpers ───────────────────────────────────────────────────────
+  const stageFiles = useCallback((files) => {
+    const items = Array.from(files).map(file => ({
+      id: ++idRef.current,
+      file,
+    }));
+    setStaged(prev => [...prev, ...items]);
+    setPanelMode('upload');
+  }, []);
+
+  const removeStaged = useCallback((id) => {
+    setStaged(prev => {
+      const next = prev.filter(i => i.id !== id);
+      if (next.length === 0) setPanelMode('stats');
+      return next;
+    });
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setStaged([]);
+    setPanelMode('stats');
+  }, []);
+
+  const handleUploadOnly = useCallback(() => {
+    const { rejected } = enqueue(staged.map(i => i.file));
+    rejected.forEach(({ name, reason }) => toast.error(`${name}: ${reason}`));
+    clearAll();
+  }, [staged, enqueue, clearAll]);
+
+  const handleShare = useCallback(() => {
+    // Upload + navigate to shares after (for now same as upload)
+    const { rejected } = enqueue(staged.map(i => i.file));
+    rejected.forEach(({ name, reason }) => toast.error(`${name}: ${reason}`));
+    clearAll();
+    toast.success('Files queued — share links coming soon!');
+  }, [staged, enqueue, clearAll]);
+
+  // ─── Cloud card drag handlers ──────────────────────────────────────────────
+  const onCloudDragEnter = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    dragCounter.current += 1;
+    if (dragCounter.current === 1) setIsDragging(true);
+  }, []);
+
+  const onCloudDragLeave = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) setIsDragging(false);
+  }, []);
+
+  const onCloudDragOver = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+  }, []);
+
+  const onCloudDrop = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    if (e.dataTransfer.files?.length) stageFiles(e.dataTransfer.files);
+  }, [stageFiles]);
+
+  const onCloudClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const onFileInputChange = useCallback((e) => {
+    if (e.target.files?.length) stageFiles(e.target.files);
+    e.target.value = '';
+  }, [stageFiles]);
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl space-y-8">
+    <div className="flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10 h-full">
 
-      {/* ── Greeting ── */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display font-extrabold text-text-primary text-2xl md:text-3xl">
-            {user ? greeting(user.first_name) : 'Dashboard'}
-          </h1>
-          <p className="text-text-muted text-sm mt-1">Here's what's happening with your files.</p>
-        </div>
-        <Link to="/dashboard/files" className="btn-primary flex-shrink-0">
-          <Upload size={14} />
-          Upload files
-        </Link>
-      </div>
+      <h1 className="md:hidden font-display font-bold text-3xl text-text-primary px-1 pt-1">
+        {getGreeting(user?.full_name)}
+      </h1>
+      <div className='hidden md:flex flex-col gap-16'>
+        {/* Greeting */}
+        <h1 className="font-display font-bold text-3xl md:text-4xl text-text-primary px-1 pt-1">
+          {getGreeting(user?.full_name)}
+        </h1>
+        {/* ── Cloud card ── */}
+        <div
+          className={`flex-1 bg-surface rounded-2xl shadow-card flex flex-col items-center justify-center hover:cursor-pointer select-none transition-all duration-200 relative overflow-hidden
+            ${isDragging ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg animate-pulse' : 'hover:shadow-card-hover'}`}
+          style={{ minHeight: 400 }}
+          onDragEnter={onCloudDragEnter}
+          onDragLeave={onCloudDragLeave}
+          onDragOver={onCloudDragOver}
+          onDrop={onCloudDrop}
+          onClick={onCloudClick}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,.pdf,.txt"
+            className="hidden"
+            onChange={onFileInputChange}
+          />
 
-      {/* ── Stat cards + storage gauge ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
-        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-          <StatCard icon={Files}  label="Total files"    value={files.length}         color="accent"   to="/dashboard/files" />
-          <StatCard icon={Star}   label="Pinned"         value={pinnedCount}           color="warning"  to="/dashboard/favorites" />
-          <StatCard icon={Share2} label="Active shares"  value={activeShares.length}   color="success"  to="/dashboard/shares" />
-          <StatCard icon={Trash2} label="In trash"       value={trash.length}          color="error"    to="/dashboard/trash" />
-        </div>
+          {/* Drag hint text */}
+          <p className="text-text-muted text-sm mb-6 pointer-events-none">
+            drag and drop files
+          </p>
 
-        <div className="card flex items-center justify-center px-8">
-          <StorageGauge usedBytes={totalUsed} totalBytes={MAX_STORAGE_BYTES} />
-        </div>
-      </div>
+          {/* Cloud image */}
+          <img
+            src={cloudImg}
+            alt="cloud"
+            className={`w-64 md:w-72 lg:w-80 h-auto pointer-events-none transition-all duration-500 ${
+              isDragging ? 'scale-105 drop-shadow-lg' : ''
+            } ${
+              panelMode === 'upload' ? 'animate-pulse-slow drop-shadow-[0_10px_8px_rgba(59,130,246,0.2)]' : ''
+            }`}
+            draggable={false}
+          />
 
-      {/* ── Recent files ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display font-semibold text-text-primary text-sm">Recent files</h2>
-          <Link to="/dashboard/files" className="text-accent text-xs hover:underline flex items-center gap-1">
-            View all <ArrowRight size={11} />
-          </Link>
-        </div>
+          {/* Label */}
+          <p className="font-display font-semibold text-2xl text-text-primary mt-6 pointer-events-none">
+            my cloud
+          </p>
 
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
-          {isLoading && (
-            <div className="divide-y divide-border">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-8 h-8 bg-elevated rounded-lg animate-pulse flex-shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-3 bg-elevated rounded animate-pulse w-40" />
-                    <div className="h-2.5 bg-elevated rounded animate-pulse w-20" />
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Drag overlay glow */}
+          {isDragging && (
+            <div className="absolute inset-0 bg-accent/5 pointer-events-none rounded-2xl" />
           )}
-
-          {!isLoading && recentFiles.length === 0 && (
-            <div className="py-10 text-center text-text-muted text-sm">No files yet.</div>
-          )}
-
-          {!isLoading && recentFiles.map((file) => (
-            <div key={file.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-elevated/20 transition-colors">
-              <FileIcon mimeType={file.mime_type} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="text-text-primary text-sm truncate">{file.original_name}</p>
-                <p className="text-text-muted text-xs">{file.size_display} · {formatDate(file.uploaded_at)}</p>
-              </div>
-              <button
-                onClick={() => downloadFile(file.id, file.original_name)}
-                className="p-1.5 rounded-md text-text-muted hover:text-accent hover:bg-accent/10 transition-colors flex-shrink-0"
-                title="Download"
-              >
-                <Download size={13} />
-              </button>
-            </div>
-          ))}
         </div>
       </div>
 
-      {/* ── Active shares ── */}
-      {activeShares.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display font-semibold text-text-primary text-sm">Active shares</h2>
-            <Link to="/dashboard/shares" className="text-accent text-xs hover:underline flex items-center gap-1">
-              View all <ArrowRight size={11} />
-            </Link>
-          </div>
-
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            {activeShares.map((share) => (
-              <div key={share.id} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-elevated/20 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <p className="text-text-primary text-sm truncate">{share.file_name}</p>
-                  <p className="text-text-muted text-xs">
-                    {share.download_count} download{share.download_count !== 1 ? 's' : ''}
-                    {share.max_downloads ? ` / ${share.max_downloads} max` : ' · Unlimited'}
-                    {share.expires_at ? ` · Expires ${formatDate(share.expires_at)}` : ''}
-                  </p>
-                </div>
-                <Badge status="active" />
-              </div>
-            ))}
-          </div>
+      {/* ── Right panel ── */}
+      {/* ── Right panel ── */}
+      <div className="grid grid-cols-1 grid-rows-1">
+        {/* Stats panel */}
+        <div
+          className={`col-start-1 row-start-1 transition-all duration-300 ${
+            panelMode === 'stats'
+              ? 'opacity-100 translate-y-0 z-10'
+              : 'opacity-0 translate-y-2 z-0 pointer-events-none'
+          }`}
+        >
+          <StatsPanel
+            activeSharesCount={activeShares.length}
+            expiringShares={expiringShares}
+            usedPercent={usedPercent}
+          />
         </div>
-      )}
-    </div>
+
+        {/* Upload list panel */}
+        <div
+          className={`col-start-1 row-start-1 transition-all duration-300 ${
+            panelMode === 'upload'
+              ? 'opacity-100 translate-y-0 z-10'
+              : 'opacity-0 translate-y-2 z-0 pointer-events-none'
+          }`}
+        >
+          <UploadListPanel
+            staged={staged}
+            onRemove={removeStaged}
+            onClearAll={clearAll}
+            onUploadOnly={handleUploadOnly}
+            onShare={handleShare}
+          />
+        </div>
+      </div>
+  </div>
   );
 }
