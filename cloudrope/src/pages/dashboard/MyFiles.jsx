@@ -6,7 +6,6 @@ import { fetchFiles, deleteFile } from '../../store/filesSlice';
 import { fetchTrash } from '../../store/trashSlice';
 import { fetchShares } from '../../store/sharesSlice';
 import { toggleFavorite } from '../../store/favoritesSlice';
-import { useUploadContext } from '../../context/UploadContext';
 import { FileRowSkeleton } from '../../components/ui/Skeleton';
 import FileIcon from '../../components/ui/FileIcon';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -20,6 +19,7 @@ import { useSortFilter, FILE_SORT_OPTIONS, FILE_FILTER_OPTIONS } from '../../hoo
 import { formatDate } from '../../utils/formatters';
 import { extractErrorMessage } from '../../utils/errors';
 import { downloadFile } from '../../utils/download';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const ALLOWED_ACCEPT = '.jpg,.jpeg,.png,.pdf,.txt';
 const PAGE_SIZE = 5;
@@ -29,6 +29,7 @@ export default function MyFiles() {
   const { items: files, status } = useSelector((s) => s.files);
   const favoriteIds = useSelector((s) => s.favorites.ids);
   const fileInputRef = useRef(null);
+  const navigate = useNavigate();
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting,   setIsDeleting]   = useState(false);
@@ -36,7 +37,7 @@ export default function MyFiles() {
 
   // Consume the shared upload queue — drag-and-drop is handled globally
   // in DashboardLayout; we just need enqueue for the file-input button.
-  const { enqueue } = useUploadContext();
+  const { stageFiles } = useOutletContext();
 
   const { sortKey, setSortKey, filterKey, setFilterKey, processed } =
     useSortFilter(files, FILE_SORT_OPTIONS, FILE_FILTER_OPTIONS, 'date_desc');
@@ -49,8 +50,8 @@ export default function MyFiles() {
 
   const handleFileChange = (e) => {
     if (!e.target.files?.length) return;
-    const { rejected } = enqueue(e.target.files);
-    rejected.forEach(({ name, reason }) => toast.error(`${name}: ${reason}`));
+    stageFiles(e.target.files);
+    navigate('/dashboard');
     fileInputRef.current.value = '';
   };
 

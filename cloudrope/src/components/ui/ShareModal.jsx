@@ -131,7 +131,7 @@ export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShare
           </div>
         </form>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fade-in">
           {/* Success view (keep your original code here) */}
           <div className="bg-success/10 border border-success/30 rounded-lg px-4 py-3">
             <p className="text-success text-xs font-medium">Link ready to share!</p>

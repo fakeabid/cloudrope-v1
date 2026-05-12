@@ -12,8 +12,6 @@ import { MAX_STORAGE_BYTES } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 import cloudImg from '../../assets/cloud.png';
 import ShareModal from '../../components/ui/ShareModal';
-import JSZip from 'jszip';
-import { filesAPI } from '../../api/files';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -195,6 +193,7 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
 
 // ─── Upload List Panel ────────────────────────────────────────────────────────
 function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, isZipping }) {
+
   return (
     <div className="bg-surface rounded-2xl shadow-card p-5 animate-fade-up flex flex-col md:h-full" style={{ minHeight: 360 }}>
       <div className="flex items-center justify-between mb-4">
@@ -210,7 +209,7 @@ function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, 
       </div>
 
       {/* File list */}
-      <div className="flex-1 space-y-2 mb-5">
+      <div className="flex-1 space-y-2 mb-5 overflow-y-auto">
         {staged.length === 0 && (
           <p className="text-sm text-text-muted text-center py-8">No files staged</p>
         )}
@@ -282,7 +281,7 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const idRef = useRef(0);
 
-  const { enqueue } = useUploadContext();
+  const { enqueue, startAll, queue } = useUploadContext();
 
   useEffect(() => {
     if (staged.length > 0) {
@@ -314,8 +313,9 @@ export default function Dashboard() {
   const handleUploadOnly = useCallback(() => {
     const { rejected } = enqueue(staged.map(i => i.file));
     rejected.forEach(({ name, reason }) => toast.error(`${name}: ${reason}`));
+    startAll();
     clearAll();
-  }, [staged, enqueue, clearAll]);
+  }, [staged, enqueue, clearAll, startAll]);
 
   const handleShare = useCallback(() => {
     if (staged.length === 0) return;
@@ -467,7 +467,6 @@ export default function Dashboard() {
           onClose={handleShareModalClose}
           onShareSuccess={() => {
             clearAll(); // Clear staging only on success
-            handleShareModalClose();
           }}
         />
       )}

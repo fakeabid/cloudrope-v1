@@ -27,6 +27,18 @@ export function useUploadQueue() {
     setQueue((prev) => prev.map((item) => item.id === id ? { ...item, ...patch } : item));
   }, []);
 
+  const startUpload = useCallback((id) => {
+    setQueue((prev) => 
+      prev.map((i) => (i.id === id && i.status === 'staged' ? { ...i, status: 'pending' } : i))
+    );
+  }, []);
+
+  const startAll = useCallback(() => {
+    setQueue((prev) => 
+      prev.map((i) => (i.status === 'staged' ? { ...i, status: 'pending' } : i))
+    );
+  }, []);
+
   const processNext = useCallback(async () => {
     if (processingRef.current) return;
 
@@ -91,12 +103,12 @@ export function useUploadQueue() {
       } else {
         const id = makeId();
         if (onComplete) callbacksRef.current[id] = onComplete;
-        valid.push({ id, file, status: 'pending', progress: 0, errorMsg: '' });
+        valid.push({ id, file, status: 'staged', progress: 0, errorMsg: '' });
       }
     }
 
     if (valid.length) setQueue((prev) => [...prev, ...valid]);
-    return { valid: valid.length, rejected };
+    return { accepted: valid, rejected };
   }, []);
 
   const clearDone = useCallback(() => {
@@ -116,5 +128,15 @@ export function useUploadQueue() {
   const doneCount  = queue.filter((i) => i.status === 'done').length;
   const errorCount = queue.filter((i) => i.status === 'error').length;
 
-  return { queue, enqueue, clearDone, retryItem, removeItem, isActive, doneCount, errorCount };
+  return { 
+    queue, 
+    enqueue,
+    startUpload,
+    startAll,
+    clearDone, 
+    retryItem, 
+    removeItem, 
+    isActive, 
+    doneCount, 
+    errorCount };
 }
