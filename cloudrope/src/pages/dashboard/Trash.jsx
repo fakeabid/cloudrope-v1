@@ -126,7 +126,7 @@ export default function Trash() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-2">
+    <div className="h-full flex flex-col gap-10">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="mt-5 md:mt-0">
@@ -179,7 +179,7 @@ export default function Trash() {
       </div>
 
       {(items.length > 0 || hasQuery) && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 animate-fade-in">
+        <div className="flex flex-col items-center justify-center gap-3 animate-fade-in">
           <SearchBar query={query} setQuery={setQuery} placeholder="Search trash…" className="md:w-[400px]" />
           <SortFilterBar
             sortOptions={TRASH_SORT_OPTIONS} sortKey={sortKey} setSortKey={setSortKey}

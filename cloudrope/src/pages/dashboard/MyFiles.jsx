@@ -160,7 +160,7 @@ export default function MyFiles() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-2">
+    <div className="h-full flex flex-col gap-10">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
@@ -234,7 +234,7 @@ export default function MyFiles() {
 
       {/* ── Search + filter ── */}
       {(files.length > 0 || hasQuery) && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 animate-fade-in">
+        <div className="flex flex-col items-center justify-center gap-3 animate-fade-in">
           <SearchBar query={query} setQuery={setQuery} placeholder="Search files…" className="md:w-[400px]" />
           <SortFilterBar
             sortOptions={FILE_SORT_OPTIONS} sortKey={sortKey} setSortKey={setSortKey}
@@ -244,7 +244,7 @@ export default function MyFiles() {
       )}
 
       {/* ── File table ── */}
-      <div className="bg-surface border border-border rounded-xl overflow-hidden animate-slide-up">
+      <div className="bg-surface border border-border rounded-xl overflow-auto animate-slide-up">
         <div className="hidden md:grid grid-cols-[1fr_100px_120px_148px] items-center px-4 py-2.5 border-b border-border bg-elevated/40">
           <span className="text-text-muted text-xs font-medium">Name</span>
           <span className="text-text-muted text-xs font-medium">Size</span>

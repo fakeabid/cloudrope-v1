@@ -7,6 +7,10 @@ import { fetchTrash } from '../../store/trashSlice';
 import { UploadProvider, useUploadContext } from '../../context/UploadContext';
 import {
   LayoutDashboard, Files, Share2, Trash2, Settings, User, LogOut, Plus,
+  Star,
+  CalendarClock,
+  Bell,
+  Cloud,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import UploadQueueTray from '../ui/UploadQueueTray';
@@ -16,12 +20,16 @@ import logo from '../../assets/logo.svg';
 
 const mainNavItems = [
   { to: '/dashboard',        label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/dashboard/activity',  label: 'Activity', icon: CalendarClock, end: true },
+  { to: '/dashboard/favorites', label: 'Favorites', icon: Star,         end: true },
   { to: '/dashboard/files',  label: 'Files',     icon: Files,           end: true },
   { to: '/dashboard/shares', label: 'Shares',    icon: Share2,          end: true },
   { to: '/dashboard/trash',  label: 'Trash',     icon: Trash2,          end: true },
+  { to: '/dashboard/clouds', label: 'Clouds', icon: Cloud, end: true },
 ];
 
 const bottomNavItems = [
+  { to: '/dashboard/notifications', label: 'Notifications', icon: Bell, end: true },
   { to: '/dashboard/settings', label: 'Settings', icon: Settings, end: true },
   { to: '/dashboard/profile',  label: 'Profile',  icon: User,     end: true },
 ];
@@ -30,9 +38,8 @@ const bottomNavItems = [
 
 function Logo() {
   return (
-    <Link to="/dashboard" className="p-5 text-center w-full block">
-      <span className="font-display font-bold text-text-primary select-none">cloud</span>
-      <span className="font-display font-bold text-accent select-none">rope</span>
+    <Link to="/dashboard" className="p-5 mt-3 text-center w-full flex justify-center items-center gap-2">
+      <img src={logo} alt="Cloudrope logo" className='w-10' />      
     </Link>
   );
 }
@@ -41,7 +48,7 @@ function SidebarContent({ onLogout, onNavClick }) {
   return (
     <div className="flex flex-col h-full">
       <Logo />
-      <nav className="flex-1 mt-8 space-y-2">
+      <nav className="flex-1 mt-5 space-y-2 overflow-y-auto">
         {mainNavItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to} to={to} end={end} onClick={onNavClick}
@@ -210,7 +217,7 @@ function DashboardLayoutInner() {
     <div className="h-screen bg-bg flex gap-3 py-8 px-6 lg:px-8">
 
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex w-44 lg:w-64 flex-shrink-0 flex-col bg-surface rounded-2xl shadow-card px-4 py-5">
+      <aside className="hidden md:flex w-44 h-full lg:w-64 flex-shrink-0 flex-col bg-surface rounded-3xl shadow-card px-4 py-5">
         <SidebarContent onLogout={handleLogout} onNavClick={() => {}} />
       </aside>
 
@@ -233,7 +240,7 @@ function DashboardLayoutInner() {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 mt-5 md:mt-0 md:ml-3 lg:ml-8 pb-20 md:pb-0">
+        <main className="flex-1 min-w-0 py-6 md:mt-0 md:ml-3 lg:ml-8 pb-20 md:pb-0">
           <Outlet context={{ staged, setStaged, stageFiles }}/>
         </main>
       </div>

@@ -35,11 +35,13 @@ export default function App() {
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index        element={<Dashboard />} />
+              <Route path="activity"  element={<Navigate to="/dashboard" replace />} />
               <Route path="files"    element={<MyFiles />} />
+              <Route path="favorites"  element={<Navigate to="/dashboard/files" replace />} />
               <Route path="trash"    element={<Trash />} />
               <Route path="shares"   element={<Shares />} />
+              <Route path="notifications" element={<Navigate to="/dashboard/settings" replace />} />
               <Route path="settings" element={<Settings />} />
-              {/* Profile placeholder */}
               <Route path="profile"  element={<Navigate to="/dashboard/settings" replace />} />
             </Route>
 

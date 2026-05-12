@@ -44,14 +44,14 @@ export default function Shares() {
   const shareUrl = (token) => `${window.location.origin}/shared/${token}`;
  
   return (
-    <div className="h-full flex flex-col gap-2">
+    <div className="h-full flex flex-col gap-10">
       <div className='mt-5 md:mt-0'>
         <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">shares</h1>
         <p className="pt-2 pl-2 text-text-muted text-sm">{items.length} share link{items.length !== 1 ? 's' : ''}</p>
       </div>
  
       {(items.length > 0 || hasQuery) && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 animate-fade-in">
+        <div className="flex flex-col items-center justify-center gap-3 animate-fade-in">
           <SearchBar query={query} setQuery={setQuery} placeholder="Search by file name…" className="md:w-[400px]" />
           <SortFilterBar
             sortOptions={SHARE_SORT_OPTIONS} sortKey={sortKey} setSortKey={setSortKey}
