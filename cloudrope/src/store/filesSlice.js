@@ -28,6 +28,15 @@ export const deleteFile = createAsyncThunk('files/deleteFile', async (id, { reje
   }
 });
 
+export const toggleFavorite = createAsyncThunk('files/toggleFavorite', async (id, { rejectWithValue }) => {
+  try {
+    await filesAPI.toggleFavorite(id);
+    return id;
+  } catch (err) {
+    return rejectWithValue(err.response?.data);
+  }
+});
+
 export const shareFile = createAsyncThunk('files/shareFile', async ({ id, options }, { rejectWithValue }) => {
   try {
     const { data } = await filesAPI.share(id, options);
@@ -78,6 +87,12 @@ const filesSlice = createSlice({
       })
       .addCase(deleteFile.fulfilled, (state, action) => {
         state.items = state.items.filter((f) => f.id !== action.payload);
+      })
+      .addCase(toggleFavorite.fulfilled, (state, action) => {
+        const file = state.items.find((f) => f.id === action.payload);
+        if (file) {
+          file.is_favorite = !file.is_favorite;
+        }
       });
   },
 });

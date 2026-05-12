@@ -42,6 +42,8 @@ class UserFile(models.Model):
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    is_favorite = models.BooleanField(default=False)
+
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
@@ -53,7 +55,12 @@ class UserFile(models.Model):
         self.deleted_at = None
         self.save(update_fields=['is_deleted', 'deleted_at'])
 
+    def toggle_favorite(self):
+        self.is_favorite = not self.is_favorite
+        self.save(update_fields=['is_favorite'])
+
     def hard_delete(self):
+        self.is_favorite = False
         self.delete()
 
     def __str__(self):

@@ -56,6 +56,28 @@ class FileListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class FileToggleFavoriteView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        file_obj = get_object_or_404(
+            UserFile,
+            pk=pk,
+            owner=request.user,
+            is_deleted=False
+        )
+
+        file_obj.toggle_favorite()
+
+        return Response(
+            {
+                "message": "Favorite status updated.",
+                "is_favorite": file_obj.is_favorite
+            },
+            status=status.HTTP_200_OK
+        )
+
+
 class FileDownloadView(APIView):
     permission_classes = (IsAuthenticated,)
 

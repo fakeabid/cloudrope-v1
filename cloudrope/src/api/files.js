@@ -9,6 +9,7 @@ export const filesAPI = {
       onUploadProgress,
     }),
   delete: (id) => api.delete(`/files/${id}/delete/`),
+  toggleFavorite: (id) => api.post(`/files/${id}/favorite/`),
 
   // Trash
   trash: () => api.get('/files/trash/'),
@@ -19,6 +20,9 @@ export const filesAPI = {
   share: (id, data) => api.post(`/files/${id}/share/`, data),
   listShares: () => api.get('/files/shares/'),
   revokeShare: (id) => api.post(`/files/shares/${id}/revoke/`),
+
+  // Download a file as a blob (for client-side zipping of selected files)
+  downloadBlob: (id) => api.get(`/files/${id}/download/`, { responseType: 'blob' }),
 
   // Public shared file — no auth header needed, plain axios
   getSharedFile: (token) =>

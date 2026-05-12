@@ -84,7 +84,10 @@ class FileListSerializer(serializers.ModelSerializer):
             'size',
             'size_display',
             'mime_type',
+            'is_favorite',
             'uploaded_at',
+            'is_deleted',
+            'deleted_at',
             'file_url'
         ]
 

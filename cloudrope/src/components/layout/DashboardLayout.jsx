@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import UploadQueueTray from '../ui/UploadQueueTray';
-import logo from '../../assets/logo.svg'
+import logo from '../../assets/logo.svg';
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 
@@ -103,7 +103,7 @@ const mobileRightItems = [mainNavItems[2], mainNavItems[3]];
 
 function MobileBottomNav({ onPlusClick }) {
   return (
-    <nav className="fixed bottom-4 left-4 right-4 z-30 md:hidden bg-white/50 hover:bg-white backdrop-blur-md border border-white/20 rounded-3xl shadow-lg shadow-blue-500/10 transition-all duration-300 flex items-center h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/50 hover:bg-white backdrop-blur-md border border-white/20 rounded-t-3xl shadow-lg shadow-blue-500/10 transition-all duration-300 flex items-center h-16 px-2">
 
       {/* Left items */}
       <div className="flex flex-1 items-center justify-around">
@@ -119,7 +119,6 @@ function MobileBottomNav({ onPlusClick }) {
             {({ isActive }) => (
               <>
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                <span className="text-[10px] font-medium">{label}</span>
               </>
             )}
           </NavLink>
@@ -151,7 +150,6 @@ function MobileBottomNav({ onPlusClick }) {
             {({ isActive }) => (
               <>
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                <span className="text-[10px] font-medium">{label}</span>
               </>
             )}
           </NavLink>
@@ -209,7 +207,7 @@ function DashboardLayoutInner() {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex gap-3 py-10 px-6 lg:px-10">
+    <div className="h-screen bg-bg flex gap-3 py-8 px-6 lg:px-8">
 
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-44 lg:w-64 flex-shrink-0 flex-col bg-surface rounded-2xl shadow-card px-4 py-5">
@@ -218,19 +216,24 @@ function DashboardLayoutInner() {
 
       {/* ── Main area ── */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Mobile logo bar */}
-        <header className="md:hidden fixed top-6 inset-x-0 mx-auto z-50 w-[93%] max-w-3xl">
-          <div className="flex items-center justify-center px-6 py-2 bg-white/60 hover:bg-white backdrop-blur-md border border-white/20 rounded-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
-            {/* Logo */}
-            <Link to="/" className="flex items-center mt-2 gap-1 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
-              <span className="font-display font-extrabold text-text-primary text-sm tracking-wide flex">
+
+        <header className="md:hidden fixed top-0 inset-x-0 mx-auto z-50">
+          <div className="flex items-center justify-between px-12 py-4 bg-white/60 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
+
+            <Link to="/" className="flex items-center mt-2 gap-2 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
+              <img src={logo} className='w-4' alt="CloudRope Logo" />
+              <span className="font-display font-extrabold text-text-primary text-xs tracking-wide flex">
                 cloud<span className='text-accent flex'>rope</span>
               </span>
+            </Link>
+
+            <Link to="/dashboard/settings" className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-elevated/70 transition-colors">
+              <User size={18} />
             </Link>
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 mt-12 md:mt-0 md:ml-3 lg:ml-8 pb-20 md:pb-0">
+        <main className="flex-1 min-w-0 mt-5 md:mt-0 md:ml-3 lg:ml-8 pb-20 md:pb-0">
           <Outlet context={{ staged, setStaged, stageFiles }}/>
         </main>
       </div>

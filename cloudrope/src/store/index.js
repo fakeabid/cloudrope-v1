@@ -2,13 +2,11 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import filesReducer    from './filesSlice';
 import trashReducer    from './trashSlice';
 import sharesReducer   from './sharesSlice';
-import favoritesReducer from './favoritesSlice';
 
 const appReducer = combineReducers({
   files:     filesReducer,
   trash:     trashReducer,
   shares:    sharesReducer,
-  favorites: favoritesReducer,
 });
 
 // Root reducer intercepts 'store/reset' and wipes all slices back to

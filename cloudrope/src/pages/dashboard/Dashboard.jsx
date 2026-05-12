@@ -363,7 +363,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10 h-full">
 
-      <h1 className="md:hidden mt-5 font-display font-bold text-3xl text-text-primary px-1 pt-1">
+      <h1 className="md:hidden mt-5 font-display font-bold text-2xl text-text-primary px-1 pt-1">
         {panelMode === 'stats' ? getGreeting(user?.full_name) : 'file upload'}
       </h1>
       <div className='hidden md:flex flex-col gap-8'>

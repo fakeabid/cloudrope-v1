@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../api/auth';
 import { store, resetStore } from '../store';
-import { initFavorites, clearFavorites } from '../store/favoritesSlice';
-import { loadFavorites } from '../store/favoritesSlice';
 
 const AuthContext = createContext(null);
 
@@ -31,9 +29,6 @@ export function AuthProvider({ children }) {
     saveTokens(data.tokens);
     saveUser(data.user);
 
-    // Scope favorites to the newly logged-in user.
-    store.dispatch(initFavorites(data.user.id));
-
     return data;
   }, [saveTokens, saveUser]);
 
@@ -47,7 +42,6 @@ export function AuthProvider({ children }) {
     saveUser(null);
 
     // Wipe all per-user Redux state so the next login starts clean.
-    store.dispatch(clearFavorites());
     store.dispatch(resetStore());
   }, [saveTokens, saveUser]);
 
@@ -57,7 +51,6 @@ export function AuthProvider({ children }) {
   const clearAll = useCallback(() => {
     saveTokens(null);
     saveUser(null);
-    store.dispatch(clearFavorites());
     store.dispatch(resetStore());
   }, [saveTokens, saveUser]);
 
@@ -75,13 +68,10 @@ export function AuthProvider({ children }) {
         const { data } = await authAPI.me();
         setUser(data);
         localStorage.setItem('cr_user', JSON.stringify(data));
-        // Re-hydrate favorites for the validated user.
-        store.dispatch(initFavorites(data.id));
       } catch {
         // Interceptor will attempt a refresh; fall back to stored user optimistically.
         if (storedUser) {
           setUser(storedUser);
-          store.dispatch(initFavorites(storedUser.id));
         }
       }
 
