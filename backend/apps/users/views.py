@@ -125,7 +125,7 @@ class VerifyEmailView(APIView):
         try:
             user = User.objects.get(pk=user_pk)
         except User.DoesNotExist:
-            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Invalid Verification Link.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.is_active:
             return Response({'message': 'Account is already verified.'}, status=status.HTTP_200_OK)

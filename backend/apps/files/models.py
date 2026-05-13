@@ -67,6 +67,8 @@ class UserFile(models.Model):
         return f"{self.original_name} ({self.owner})"
     
 
+VIEWABLE_MIME_TYPES = {'image/jpeg', 'image/png', 'application/pdf', 'text/plain'}
+
 class FileShare(models.Model):
     file = models.ForeignKey(
         UserFile,
@@ -80,14 +82,25 @@ class FileShare(models.Model):
         related_name='shared_files'
     )
 
-    token = models.CharField(max_length=64, unique=True, db_index=True)
+    shared_with_email = models.EmailField()
+    shared_with_user  = models.ForeignKey(           # populated if recipient has an account
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='received_shares'
+    )
 
+    token = models.CharField(max_length=64, unique=True, db_index=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_revoked = models.BooleanField(default=False)
+
     max_downloads = models.PositiveIntegerField(null=True, blank=True)
     download_count = models.PositiveIntegerField(default=0)
+
+    max_views  = models.PositiveIntegerField(null=True, blank=True)
+    view_count = models.PositiveIntegerField(default=0)
+
     first_accessed_at = models.DateTimeField(null=True, blank=True)
+    first_viewed_at   = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.token:
@@ -96,30 +109,38 @@ class FileShare(models.Model):
 
     @property
     def is_expired(self):
-        if self.expires_at and timezone.now() > self.expires_at:
-            return True
-        return False
-    
-    @property
-    def is_active(self):
-        if self.is_revoked:
-            return False
-        if self.is_expired:
-            return False
-        if self.is_download_limit_reached:
-            return False
-        return True
-        
+        return bool(self.expires_at and timezone.now() > self.expires_at)
+
     @property
     def is_download_limit_reached(self):
+        return self.max_downloads is not None and self.download_count >= self.max_downloads
+
+    @property
+    def is_view_limit_reached(self):
+        return self.max_views is not None and self.view_count >= self.max_views
+
+    @property
+    def can_download(self):
+        return not self.is_revoked and not self.is_expired and not self.is_download_limit_reached
+
+    @property
+    def can_view(self):
         return (
-            self.max_downloads is not None and
-            self.download_count >= self.max_downloads
+            not self.is_revoked and not self.is_expired
+            and not self.is_view_limit_reached
+            and self.file.mime_type in VIEWABLE_MIME_TYPES
+        )
+
+    @property
+    def is_active(self):
+        return not self.is_revoked and not self.is_expired and (
+            self.can_download or self.can_view
         )
 
 
 class ShareAccessLog(models.Model):
     class Action(models.TextChoices):
+        ACCESS = 'access', 'Access'
         VIEW = 'view', 'View'
         DOWNLOAD = 'download', 'Download'
 
