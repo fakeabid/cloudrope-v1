@@ -19,11 +19,11 @@ export default function Settings() {
   const { register, handleSubmit, watch, setError, formState: { errors }, reset } = useForm();
   const confirmText = watch('confirm_text', '');
 
-  const handleDeleteAccount = async ({ password }) => {
+  const handleDeleteAccount = async ({ delete_account_password }) => {
     const tokens = JSON.parse(localStorage.getItem('cr_tokens') || 'null');
     setIsDeleting(true);
     try {
-      await authAPI.deleteAccount({ password, refresh: tokens?.refresh });
+      await authAPI.deleteAccount({ password: delete_account_password, refresh: tokens?.refresh });
       clearAll();
       toast.success('Account deleted.');
       navigate('/', { replace: true });
@@ -46,7 +46,7 @@ export default function Settings() {
 
   return (
     <div className="h-full flex flex-col gap-6 max-w-xl">
-      <div className="mt-5 md:mt-0 mb-6">
+      <div className="mt-3 md:mt-0 mb-6">
         <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">settings</h1>
         <p className="pt-2 pl-2 text-text-muted text-sm">configure your app</p>
       </div>
@@ -108,7 +108,7 @@ export default function Settings() {
         title="Delete account"
         size="md"
       >
-        <form onSubmit={handleSubmit(handleDeleteAccount)} className="space-y-4">
+        <form autoComplete="off" onSubmit={handleSubmit(handleDeleteAccount)} className="space-y-4">
           <div className="bg-error/10 border border-error/20 rounded-lg px-4 py-3">
             <div className="flex gap-2.5">
               <AlertTriangle size={14} className="text-error flex-shrink-0 mt-0.5" />
@@ -126,7 +126,8 @@ export default function Settings() {
                 className="input-field pr-10"
                 type={showPwd ? 'text' : 'password'}
                 placeholder="Enter your current password"
-                {...register('password', { required: 'Password is required' })}
+                autoComplete="new-password"
+                {...register('delete_account_password', { required: 'Password is required' })}
               />
               <button
                 type="button"

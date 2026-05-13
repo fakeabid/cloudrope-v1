@@ -32,7 +32,7 @@ function SelectCircle({ selected, onClick }) {
       className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
         selected
           ? 'bg-accent border-accent shadow-sm'
-          : 'border-border hover:border-accent bg-white'
+          : 'border-border hover:border-accent bg-white/80 backdrop-blur-sm'
       }`}
     >
       {selected && <Check size={13} className="text-white" strokeWidth={3} />}
@@ -160,11 +160,11 @@ export default function MyFiles() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-10">
+    <div className="h-full flex flex-col gap-6">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
-        <div className="mt-5 md:mt-0">
+        <div className="mt-3 md:mt-0">
           <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">files</h1>
           <p className="pt-2 pl-2 text-text-muted text-sm">
             {files.length} file{files.length !== 1 ? 's' : ''}
@@ -224,7 +224,7 @@ export default function MyFiles() {
                 accept={ALLOWED_ACCEPT} multiple
                 className="hidden" onChange={handleFileChange}
               />
-              <button className="btn-primary rounded-full" onClick={() => fileInputRef.current?.click()}>
+              <button className="btn-primary rounded-full hidden md:block" onClick={() => fileInputRef.current?.click()}>
                 +
               </button>
             </>
@@ -244,13 +244,7 @@ export default function MyFiles() {
       )}
 
       {/* ── File table ── */}
-      <div className="bg-surface border border-border rounded-xl overflow-auto animate-slide-up">
-        <div className="hidden md:grid grid-cols-[1fr_100px_120px_148px] items-center px-4 py-2.5 border-b border-border bg-elevated/40">
-          <span className="text-text-muted text-xs font-medium">Name</span>
-          <span className="text-text-muted text-xs font-medium">Size</span>
-          <span className="text-text-muted text-xs font-medium">Uploaded</span>
-          <span className="text-text-muted text-xs font-medium text-right">Actions</span>
-        </div>
+      <div className="overflow-auto animate-slide-up">
 
         {status === 'loading' && Array.from({ length: 4 }).map((_, i) => <FileRowSkeleton key={i} />)}
 

@@ -105,12 +105,18 @@ function SidebarContent({ onLogout, onNavClick }) {
 // ── Mobile bottom nav ─────────────────────────────────────────────────────────
 
 // Items shown left and right of the FAB (2 each side)
-const mobileLeftItems  = [mainNavItems[0], mainNavItems[1]];
-const mobileRightItems = [mainNavItems[2], mainNavItems[3]];
+const mobileLeftItems  = [
+  { to: '/dashboard',        label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/dashboard/files',  label: 'Files',     icon: Files,           end: true },
+];
+const mobileRightItems = [
+  { to: '/dashboard/shares', label: 'Shares',    icon: Share2,          end: true },
+  { to: '/dashboard/profile',  label: 'Profile',  icon: User,     end: true },
+];
 
 function MobileBottomNav({ onPlusClick }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/50 hover:bg-white backdrop-blur-md border border-white/20 rounded-t-3xl shadow-lg shadow-blue-500/10 transition-all duration-300 flex items-center h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-t-3xl shadow-lg shadow-blue-500/10 transition-all duration-300 flex items-center h-16 px-2">
 
       {/* Left items */}
       <div className="flex flex-1 items-center justify-around">
@@ -222,10 +228,10 @@ function DashboardLayoutInner() {
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0">
 
-        <header className="md:hidden fixed top-0 inset-x-0 mx-auto z-50">
-          <div className="flex items-center justify-between px-12 py-4 bg-white/60 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
+        <header className="md:hidden fixed top-0 inset-x-0 z-50 flex justify-center">
+          <div className="flex w-[80%] max-w-[500px] items-center justify-center px-12 py-3 bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
 
             <Link to="/" className="flex items-center mt-2 gap-2 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
               <img src={logo} className='w-4' alt="CloudRope Logo" />
@@ -233,14 +239,12 @@ function DashboardLayoutInner() {
                 cloud<span className='text-accent flex'>rope</span>
               </span>
             </Link>
-
-            <Link to="/dashboard/settings" className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-elevated/70 transition-colors">
-              <User size={18} />
-            </Link>
           </div>
+
+
         </header>
 
-        <main className="flex-1 min-w-0 py-6 md:mt-0 md:ml-3 lg:ml-8 pb-20 md:pb-0">
+        <main className="flex-1 min-w-0 py-4 mt-3 md:mt-0 md:ml-3 lg:ml-8 pb-24 md:pb-0">
           <Outlet context={{ staged, setStaged, stageFiles }}/>
         </main>
       </div>

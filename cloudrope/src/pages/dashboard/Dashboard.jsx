@@ -115,9 +115,9 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
   const notificationsCount = 4;
 
   return (
-    <div className="flex flex-col animate-fade-up h-full overflow-y-auto">
+    <div className="flex flex-col animate-fade-up">
       {/* Activity header */}
-      <div className="bg-surface rounded-3xl shadow-card p-5 h-full flex flex-col gap-4">
+      <div className="bg-surface rounded-3xl shadow-card p-5 flex flex-col gap-4 md:h-[570px] overflow-y-auto">
         <div className='px-2 flex justify-between'>
           <p className="text-sm text-text-muted font-medium">Activity</p>
           <div className='flex gap-1'>
@@ -137,7 +137,7 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
             </Link>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between px-3 md:px-0">
             {calDates.map((d, i) => {
               const isToday = i === 2;
               const hasExpiry = expiringShares.some(s => {
@@ -152,8 +152,8 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
                   }
                   <span className={`font-medium w-8 h-8 flex items-center justify-center rounded-full transition-all ${
                     isToday
-                      ? 'text-accent font-bold text-2xl'
-                      : 'text-text-muted'
+                      ? 'text-accent font-bold text-2xl md:text-xl'
+                      : 'text-text-muted md:text-sm'
                   }`}>
                     {d.getDate()}
                   </span>
@@ -182,12 +182,12 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
           <p className="text-sm text-text-muted font-medium">Apps and Info</p>
         </div>
 
-        {/* Active shares + storage row */}
+        {/* Active shares + Cloudy AI row */}
         <div className="grid grid-cols-2 gap-5">
           {/* Active shares */}
           <button
             onClick={() => navigate('/dashboard/shares')}
-            className="flex-1 bg-elevated min-h-36 text-center rounded-3xl p-4 hover:shadow-card-hover transition-shadow"
+            className="flex-1 bg-elevated text-center rounded-3xl p-6 hover:shadow-card-hover transition-shadow"
           >
             <p className="text-sm text-text-muted mb-4">Active Shares</p>
             <div className={`flex items-center justify-center gap-2 ${activeSharesCount > 0 ? 'text-accent' : 'text-text-muted'}`}>
@@ -199,26 +199,44 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
           {/* Cloudy AI */}
           <button 
             onClick={() => navigate('/dashboard')}
-            className="flex-1 bg-black rounded-3xl min-h-36 p-5 flex flex-col items-center justify-center hover:shadow-card-hover transition-shadow"
+            className="flex-1 bg-accent-light rounded-3xl p-6 flex flex-col items-center justify-center hover:shadow-card-hover transition-shadow"
           >
-            <img src={cloudyAI} className='w-24 mb-4' alt="Icon for Cloudy AI" />
-            <span className='text-text-muted'>cloudy AI</span>
+            <img src={cloudyAI} className='w-16 mb-4' alt="Icon for Cloudy AI" />
+            <span className='text-text-muted text-sm font-semibold'>cloudy AI</span>
           </button>
         </div>
+
+        {/* Storage card */}
+        <Link to='/dashboard/files'
+          className={`md:hidden bg-elevated pb-2 pt-5 rounded-3xl shadow-card flex items-center justify-center hover:cursor-pointer select-none transition-all duration-300 animate-slide-up relative overflow-hidden`}
+        >
+          <span className='text-sm text-text-primary font-semibold'>Storage</span>
+          <div className='relative'>
+            {/* Cloud image */}
+            <img
+              src={cloudImg}
+              alt="cloud"
+              className={`w-56 md:w-72 lg:w-80 h-auto pointer-events-none transition-all duration-500 ease-in-out`}
+              draggable={false}
+            />
+
+            <StorageGauge usedPercent={usedPercent} onCloud={true}/>
+          </div>
+        </Link>
 
         <div className="grid grid-cols-2 gap-5">
           <button
             onClick={() => navigate('/dashboard/clouds')}
-            className="flex-1 bg-accent-light text-center rounded-3xl min-h-36 p-4 hover:shadow-card-hover transition-shadow"
+            className="flex-1 bg-accent-light text-center text-text-muted rounded-3xl p-6 hover:shadow-card-hover transition-shadow"
           >
-            <div className={`flex items-center justify-center mb-4 ${notificationsCount > 0 ? 'text-accent' : 'text-text-muted'}`}>
-              <Cloud size={44} strokeWidth={3} />
+            <div className={`flex items-center justify-center mb-3`}>
+              <Cloud size={50} strokeWidth={2} />
             </div>
-            <p className="text-sm text-text-muted">Clouds</p>
+            <p className="text-sm text-text-primary font-semibold">Clouds</p>
           </button>
           <button
             onClick={() => navigate('/dashboard/notifications')}
-            className="flex-1 bg-elevated text-center rounded-3xl p-4 min-h-36 hover:shadow-card-hover transition-shadow"
+            className="flex-1 bg-elevated text-center rounded-3xl p-6 hover:shadow-card-hover transition-shadow"
           >
             <p className="text-sm text-text-muted mb-4">Notifications</p>
             <div className={`flex items-center justify-center gap-2 ${notificationsCount > 0 ? 'text-accent' : 'text-text-muted'}`}>
@@ -404,7 +422,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10 h-full">
       <div className='flex flex-col gap-6 justify-between'>
-        <h1 className={`${ panelMode === 'upload' ? 'hidden' : ''} pt-2 pl-2 font-display font-bold text-text-primary text-2xl`}>dashboard {getDayEmoji()}</h1>
+        <h1 className={`${ panelMode === 'upload' ? 'hidden' : ''} mt-3 md:mt-0 pt-2 pl-2 font-display font-bold text-text-primary text-2xl`}>dashboard {getDayEmoji()}</h1>
 
         {/* Stats */}
         <div className={`${ panelMode === 'upload' ? '' : 'md:grid'} hidden grid-cols-3 gap-5 flex-1 max-h-32`}>
@@ -423,12 +441,12 @@ export default function Dashboard() {
         </div>
 
         { panelMode == 'upload' && 
-          <h1 className='pl-3 font-display text-3xl font-bold text-text-primary animate-slide-up flex items-center gap-2'>file upload <Share size={22}  className='text-accent'/></h1>
+          <h1 className='mt-3 font-display pt-2 pl-2 text-2xl md:text-3xl font-bold text-text-primary animate-slide-up flex items-center gap-2'>file upload <Share size={22}  className='text-accent'/></h1>
         }
 
         {/* ── Cloud card ── */}
         <div
-          className={`bg-surface/30 flex-1 rounded-3xl shadow-card flex flex-col items-center justify-center hover:cursor-pointer select-none transition-all duration-300 animate-slide-up relative overflow-hidden
+          className={`hidden md:flex bg-surface/30 flex-1 rounded-3xl shadow-card flex-col items-center justify-center hover:cursor-pointer select-none transition-all duration-300 animate-slide-up relative overflow-hidden
             ${isDragging ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg animate-pulse' : 'hover:shadow-card-hover'}`}
           style={{ minHeight: 400 }}
           onDragEnter={onCloudDragEnter}
@@ -476,7 +494,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-
       {/* ── Right panel ── */}
       <div className="grid grid-cols-1 grid-rows-1">
         {/* Stats panel */}

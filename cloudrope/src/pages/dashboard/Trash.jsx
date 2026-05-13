@@ -129,7 +129,7 @@ export default function Trash() {
     <div className="h-full flex flex-col gap-10">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
-        <div className="mt-5 md:mt-0">
+        <div className="mt-3 md:mt-0">
           <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">trash</h1>
           <p className="pt-2 pl-2 text-text-muted text-sm">
             {items.length} deleted file{items.length !== 1 ? 's' : ''}
@@ -188,13 +188,7 @@ export default function Trash() {
         </div>
       )}
 
-      <div className="bg-surface border border-border rounded-xl overflow-hidden animate-slide-up">
-        <div className="hidden md:grid grid-cols-[1fr_100px_160px_112px] items-center px-4 py-2.5 border-b border-border bg-elevated/40">
-          <span className="text-text-muted text-xs font-medium">Name</span>
-          <span className="text-text-muted text-xs font-medium">Size</span>
-          <span className="text-text-muted text-xs font-medium">Deleted</span>
-          <span className="text-text-muted text-xs font-medium text-right">Actions</span>
-        </div>
+      <div className="overflow-hidden animate-slide-up">
 
         {status === 'loading' && Array.from({ length: 3 }).map((_, i) => <FileRowSkeleton key={i} />)}
 

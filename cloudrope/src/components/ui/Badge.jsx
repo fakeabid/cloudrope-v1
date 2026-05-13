@@ -6,10 +6,10 @@ const variants = {
   default:   'bg-elevated text-text-muted border-border',
 };
 
-export default function Badge({ status, children }) {
+export default function Badge({ status, width='', children }) {
   const cls = variants[status] || variants.default;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${cls}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${cls} ${width}`}>
       {children || status}
     </span>
   );
