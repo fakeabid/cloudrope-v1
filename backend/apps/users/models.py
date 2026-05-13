@@ -5,6 +5,10 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 from django.utils import timezone
+import uuid
+import os
+import shutil
+from django.conf import settings
 
 
 class CloudropeUserManager(BaseUserManager):
@@ -33,6 +37,10 @@ class CloudropeUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+def avatar_upload_path(instance, filename):
+    ext = filename.rsplit('.', 1)[-1].lower()
+    return f"avatars/{instance.pk}/{uuid.uuid4().hex}.{ext}"
+
 class CloudropeUser(AbstractBaseUser, PermissionsMixin):
     first_name     = models.CharField(max_length=50)
     last_name      = models.CharField(max_length=50)
@@ -45,6 +53,9 @@ class CloudropeUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CloudropeUserManager()
     all_objects = models.Manager() # Unfiltered — includes soft-deleted users
+
+    display_name = models.CharField(max_length=50, blank=True, default='')
+    avatar       = models.ImageField(upload_to=avatar_upload_path, null=True, blank=True)
 
     USERNAME_FIELD  = "email"
     REQUIRED_FIELDS = ["first_name", "last_name", "date_of_birth"]
@@ -59,3 +70,27 @@ class CloudropeUser(AbstractBaseUser, PermissionsMixin):
         self.is_active = False
         self.deleted_at = timezone.now()
         self.save(update_fields=["is_active", "deleted_at"])
+
+    def save(self, *args, **kwargs):
+        if not self.display_name:
+            self.display_name = self.first_name
+
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Delete avatar file
+        if self.avatar:
+            self.avatar.delete(save=False)
+
+        # Delete avatar directory if using per-user folders
+        avatar_dir = os.path.join(
+            settings.MEDIA_ROOT,
+            "avatars",
+            str(self.id)
+        )
+
+        if os.path.exists(avatar_dir):
+            shutil.rmtree(avatar_dir, ignore_errors=True)
+
+        super().delete(*args, **kwargs)
+    

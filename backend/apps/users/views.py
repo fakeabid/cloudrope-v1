@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, parsers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -14,7 +14,9 @@ from .serializers import (
     ResendVerificationSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    DeleteAccountSerializer
+    DeleteAccountSerializer,
+    UpdateProfileSerializer,
+    ChangePasswordSerializer,
 )
 from .utils import (
     generate_verification_token,
@@ -57,7 +59,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         return Response({
-            'user': UserSerializer(user).data,
+            'user': UserSerializer(user, context={"request": request}).data,
             'tokens': get_tokens_for_user(user),
             'message': 'Login successful.'
         }, status=status.HTTP_200_OK)
@@ -88,7 +90,7 @@ class TokenRefreshView(BaseTokenRefreshView):
 
             try:
                 user = User.objects.get(id=user_id)
-                response.data['user'] = UserSerializer(user).data
+                response.data['user'] = UserSerializer(user, context={"request": request}).data
             except User.DoesNotExist:
                 return Response({'error': 'User not found.'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -99,7 +101,7 @@ class MeView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
@@ -133,7 +135,7 @@ class VerifyEmailView(APIView):
 
         return Response({
             'message': 'Email verified successfully.',
-            'user': UserSerializer(user).data,
+            'user': UserSerializer(user, context={"request": request}).data,
         }, status=status.HTTP_200_OK)
     
 
@@ -177,6 +179,38 @@ class PasswordResetConfirmView(APIView):
         return Response({
             'message': 'Password reset successful. You can now log in with your new password.'
         }, status=status.HTTP_200_OK)
+    
+
+class UpdateProfileView(APIView):
+    permission_classes = (IsAuthenticated,)
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+    def patch(self, request):
+        serializer = UpdateProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(request.user, context={'request': request}).data)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        new_tokens = serializer.save()
+        return Response({
+            'message': 'Password changed successfully.',
+            'tokens': new_tokens
+        })
     
 
 class DeleteAccountView(APIView):

@@ -4,7 +4,7 @@ from .views import (
     TokenRefreshView, MeView,
     VerifyEmailView, ResendVerificationView,
     PasswordResetRequestView, PasswordResetConfirmView,
-    DeleteAccountView
+    DeleteAccountView, UpdateProfileView, ChangePasswordView
 )
 
 urlpatterns = [
@@ -18,4 +18,6 @@ urlpatterns = [
     path('password-reset/',        PasswordResetRequestView.as_view(), name='password_reset'),
     path('password-reset/confirm/',PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('delete-account/',        DeleteAccountView.as_view(),        name='delete_account'),
+    path('profile/update/',  UpdateProfileView.as_view(),  name='profile_update'),
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
 ]

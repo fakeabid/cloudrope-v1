@@ -14,6 +14,7 @@ from .utils import (
     generate_reset_token, send_password_reset_email,
     verify_reset_token, normalize_email
 )
+from .tokens import get_tokens_for_user
 
 User = get_user_model()
 
@@ -108,17 +109,29 @@ class LoginSerializer(serializers.Serializer):
 
         if not user:
             try:
-                deleted_user = User.all_objects.get(email=email)
-                if deleted_user.check_password(password) and deleted_user.deleted_at is not None:
+                none_user = User.all_objects.get(email=email)
+
+                if (
+                    none_user.check_password(password)
+                    and none_user.deleted_at is not None
+                ):
                     raise serializers.ValidationError(
                         "This account has been deleted. Please contact support if you believe this is a mistake."
                     )
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Invalid credentials. Please try again.")
 
-        if not user.is_active:
+                if (
+                    none_user.check_password(password)
+                    and not none_user.is_active
+                ):
+                    raise serializers.ValidationError(
+                        "Please verify your email before logging in. Check your inbox for the verification link."
+                    )
+
+            except User.DoesNotExist:
+                pass
+
             raise serializers.ValidationError(
-                "Please verify your email before logging in. Check your inbox for the verification link."
+                "Invalid credentials. Please try again."
             )
 
         data["user"] = user
@@ -141,19 +154,52 @@ class LogoutSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
+    avatar_url   = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             "id",
+            "display_name",
             "first_name",
             "last_name",
             "full_name",
             "email",
             "date_joined",
+            "avatar_url"
         )
         read_only_fields = fields
 
+    def get_avatar_url(self, obj):
+        request = self.context.get('request')
+        if obj.avatar and request:
+            return request.build_absolute_uri(obj.avatar.url)
+        return None
+
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model  = User
+        fields = ('display_name', 'avatar')
+
+    def validate_display_name(self, value):
+        return value.strip()
+
+    def validate_avatar(self, value):
+        max_size = 2 * 1024 * 1024  # 2 MB
+        if value and value.size > max_size:
+            raise serializers.ValidationError("Avatar must be under 2 MB.")
+        return value
+
+    def update(self, instance, validated_data):
+        # Delete old avatar from disk before saving new one
+        new_avatar = validated_data.get('avatar')
+        if new_avatar and instance.avatar:
+            instance.avatar.delete(save=False)
+        return super().update(instance, validated_data)
+    
 
 class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -232,6 +278,48 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         ):
             BlacklistedToken.objects.get_or_create(token=token)
 
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password     = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        if not self.context['request'].user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value
+
+    def validate_new_password(self, value):
+        validate_password_func(value)
+        return value
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError(
+                {'confirm_password': 'Passwords do not match.'}
+            )
+        if data['current_password'] == data['new_password']:
+            raise serializers.ValidationError(
+                {'new_password': 'New password must differ from current password.'}
+            )
+        return data
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save(update_fields=['password'])
+
+        # Blacklist all active refresh tokens —
+        # PasswordAwareJWTAuthentication will also reject old access tokens
+        # automatically because pwd_hash won't match.
+        for token in OutstandingToken.objects.filter(
+            user=user,
+            expires_at__gt=timezone.now()
+        ):
+            BlacklistedToken.objects.get_or_create(token=token)
+
+        # Issue fresh tokens so the user stays logged in
+        return get_tokens_for_user(user)
+    
 
 class DeleteAccountSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
