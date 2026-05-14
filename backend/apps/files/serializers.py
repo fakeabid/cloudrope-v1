@@ -16,6 +16,8 @@ ALLOWED_MIME_TYPES = {
     'application/zip'
 }
 
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 # File Upload Serializers
 
@@ -107,12 +109,24 @@ class FileListSerializer(serializers.ModelSerializer):
 # File Sharing Serializers
 
 class FileShareCreateSerializer(serializers.Serializer):
+    emails = serializers.ListField(
+        child=serializers.EmailField(), 
+        min_length=1, max_length=20)
     expiration_hours = serializers.IntegerField(required=False, min_value=1, max_value=168)
     max_downloads = serializers.IntegerField(
         required=False,
         min_value=1,
         allow_null=True
     )
+    max_views = serializers.IntegerField(
+        required=False, 
+        min_value=1, 
+        allow_null=True
+    )
+
+    def validate_emails(self, emails):
+        cleaned = list({e.strip().lower() for e in emails if e.strip()})
+        return cleaned
 
     def create(self, validated_data):
         request = self.context['request']
@@ -124,38 +138,43 @@ class FileShareCreateSerializer(serializers.Serializer):
                 hours=validated_data['expiration_hours']
             )
 
-        share = FileShare.objects.create(
-            file=file_obj,
-            shared_by=request.user,
-            expires_at=expires_at,
-            max_downloads=validated_data.get('max_downloads')
-        )
-
-        return share
+        shares = []
+        for email in validated_data['emails']:
+            recipient_user = User.objects.filter(email=email).first()
+            share = FileShare.objects.create(
+                file=file_obj,
+                shared_by=request.user,
+                shared_with_email=email,
+                shared_with_user=recipient_user,
+                expires_at=expires_at,
+                max_downloads=validated_data.get('max_downloads'),
+                max_views=validated_data.get('max_views'),
+            )
+            shares.append(share)
+        return shares
     
 
 class FileShareListSerializer(serializers.ModelSerializer):
     file_name = serializers.CharField(source='file.original_name', read_only=True)
     status = serializers.SerializerMethodField()
+    is_viewed         = serializers.SerializerMethodField()
 
     class Meta:
         model = FileShare
         fields = [
-            'id',
-            'file_name',
-            'token',
-            'created_at',
-            'expires_at',
-            'status',
-            'max_downloads',
-            'download_count'
+            'id', 'file_name', 'token', 'created_at', 'expires_at',
+            'status', 'shared_with_email',
+            'max_downloads', 'download_count',
+            'max_views', 'view_count',
+            'is_viewed', 'first_viewed_at',
+            'first_accessed_at'
         ]
 
     def get_status(self, obj):
-        if obj.is_revoked:
-            return "revoked"
-        if obj.is_expired:
-            return "expired"
-        if obj.is_download_limit_reached: 
-            return "exhausted"
-        return "active"
+        if obj.is_revoked:  return 'revoked'
+        if obj.is_expired:  return 'expired'
+        if obj.is_download_limit_reached and obj.is_view_limit_reached: return 'exhausted'
+        return 'active'
+
+    def get_is_viewed(self, obj):
+        return obj.first_viewed_at is not None

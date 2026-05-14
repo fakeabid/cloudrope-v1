@@ -33,7 +33,7 @@ export default function Login() {
       if (msg.toLowerCase().includes('verify')) {
         setError('root', { message: msg });
       } else if (msg.toLowerCase().includes('credentials') || msg.toLowerCase().includes('invalid')) {
-        setError('root', { message: msg });
+        toast.error(msg);
       } else {
         toast.error(msg);
       }
@@ -46,7 +46,7 @@ export default function Login() {
     <AuthLayout title="Welcome back" subtitle="Sign in to your Cloudrope account.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {errors.root && (
-          <div className="bg-error/10 border border-error/30 rounded-lg px-3 py-2.5 text-error text-xs">
+          <div className="bg-error/10 border border-error/30 rounded-lg px-3 text-center py-2.5 text-error text-xs">
             {errors.root.message}
             {errors.root.message?.toLowerCase().includes('verify') && (
               <span> — <Link to="/auth/resend-verification" className="underline">Resend link</Link></span>

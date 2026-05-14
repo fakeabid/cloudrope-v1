@@ -20,6 +20,29 @@ export function formatDateTime(dateStr) {
   });
 }
 
+export function formatTimeRemaining(dateString) {
+  if (!dateString) return 'Never';
+
+  const now = new Date();
+  const expires = new Date(dateString);
+
+  const diffMs = expires - now;
+
+  if (diffMs <= 0) {
+    return 'Expired';
+  }
+
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+
+  if (hours < 24) {
+    return `${hours}h`;
+  }
+
+  const days = Math.floor(hours / 24);
+
+  return `${days}d`;
+}
+
 export function getMimeIcon(mimeType) {
   if (!mimeType) return 'file';
   if (mimeType.startsWith('image/')) return 'image';

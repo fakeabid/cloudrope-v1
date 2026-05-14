@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Upload, Download, Share2, Trash2, Files, Star, Check, X } from 'lucide-react';
+import { Download, Share2, Trash2, Files, Star, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchFiles, deleteFile, toggleFavorite } from '../../store/filesSlice';
 import { fetchTrash } from '../../store/trashSlice';
@@ -9,6 +9,7 @@ import { FileRowSkeleton } from '../../components/ui/Skeleton';
 import FileIcon from '../../components/ui/FileIcon';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import ShareModal from '../../components/ui/ShareModal';
+import FileDetailModal from '../../components/ui/FileDetailModal';
 import SearchBar from '../../components/ui/SearchBar';
 import SortFilterBar from '../../components/ui/SortFilterBar';
 import Pagination from '../../components/ui/Pagination';
@@ -51,6 +52,7 @@ export default function MyFiles() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting,   setIsDeleting]   = useState(false);
   const [shareTarget,  setShareTarget]  = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   // ── Select mode ──
   const [selectMode,       setSelectMode]       = useState(false);
@@ -160,13 +162,13 @@ export default function MyFiles() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-6">
+    <div className="h-full flex flex-col gap-6 md:gap-8">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="mt-3 md:mt-0">
           <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">files</h1>
-          <p className="pt-2 pl-2 text-text-muted text-sm">
+          <p className="pt-2 pl-2 text-text-muted text-xs md:text-sm">
             {files.length} file{files.length !== 1 ? 's' : ''}
             {selectMode && n > 0 && (
               <span className="text-accent font-medium ml-1">· {n} selected</span>
@@ -193,7 +195,6 @@ export default function MyFiles() {
                 {isPreparingShare ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {n > 1 ? 'Downloading…' : 'Preparing…'}
                   </>
                 ) : (
                   <>
@@ -213,7 +214,7 @@ export default function MyFiles() {
           ) : (
             <>
               <button
-                className="btn-secondary rounded-full p-3"
+                className="btn-secondary rounded-full p-3 text-xs md:text-sm"
                 onClick={() => setSelectMode(true)}
                 disabled={files.length === 0}
               >
@@ -276,10 +277,14 @@ export default function MyFiles() {
           return (
             <div
               key={file.id}
-              onClick={selectMode ? () => toggleSelect(file.id) : undefined}
-              className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_100px_120px_148px] items-center gap-3 px-4 py-3.5 border-b border-border last:border-0 transition-colors ${
+              onClick={
                 selectMode
-                  ? `cursor-pointer ${isSelected ? 'bg-accent/5' : 'hover:bg-elevated/40'}`
+                  ? () => toggleSelect(file.id)
+                  : () => setSelectedFile(file)
+              }
+              className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_60px_178px_80px] items-center gap-3 px-4 py-3.5 border-b border-border last:border-0 transition-colors hover:cursor-pointer ${
+                selectMode
+                  ? `${isSelected ? 'bg-accent/5' : 'hover:bg-elevated/40'}`
                   : 'hover:bg-elevated/30'
               }`}
             >
@@ -293,33 +298,37 @@ export default function MyFiles() {
                 ) : (
                   <FileIcon mimeType={file.mime_type} />
                 )}
-                <div className="min-w-0">
-                  <p className="text-text-primary text-sm font-medium truncate">{file.original_name}</p>
+                <div className="min-w-0 flex flex-col gap-2">
+                  <p className="text-text-primary text-sm truncate">{file.original_name}</p>
                   <p className="text-text-muted text-xs md:hidden">{file.size_display} · {formatDate(file.uploaded_at)}</p>
                 </div>
               </div>
 
               <span className="hidden md:block text-text-muted text-xs">{file.size_display}</span>
-              <span className="hidden md:block text-text-muted text-xs">{formatDateTime(file.uploaded_at)}</span>
+              <span className="hidden md:block text-text-muted text-xs">Created {formatDateTime(file.uploaded_at)}</span>
 
               {/* Actions — hidden in select mode */}
               {!selectMode ? (
                 <div className="flex items-center gap-1 justify-end">
                   <button
-                    onClick={() => dispatch(toggleFavorite(file.id))}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dispatch(toggleFavorite(file.id));
+                    }}
                     className={`p-1.5 rounded-md transition-colors ${isFav ? 'text-warning hover:bg-warning/10' : 'text-text-muted hover:text-warning hover:bg-warning/10'}`}
                     title={isFav ? 'Unpin' : 'Pin'}
                   >
                     <Star size={14} fill={isFav ? 'currentColor' : 'none'} />
                   </button>
-                  <button onClick={() => downloadFile(file.id, file.original_name)} className="p-1.5 rounded-md text-text-muted hover:text-accent hover:bg-accent/10 transition-colors" title="Download">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadFile(file.id, file.original_name);
+                    }} 
+                    className="p-1.5 rounded-md text-text-muted hover:text-accent hover:bg-accent/10 transition-colors" 
+                    title="Download"
+                  >
                     <Download size={14} />
-                  </button>
-                  <button className="p-1.5 rounded-md text-text-muted hover:text-success hover:bg-success/10 transition-colors" title="Share" onClick={() => setShareTarget(file)}>
-                    <Share2 size={14} />
-                  </button>
-                  <button className="p-1.5 rounded-md text-text-muted hover:text-error hover:bg-error/10 transition-colors" title="Delete" onClick={() => setDeleteTarget(file)}>
-                    <Trash2 size={14} />
                   </button>
                 </div>
               ) : (
@@ -337,6 +346,27 @@ export default function MyFiles() {
         )}
       </div>
 
+      {selectedFile && (
+        <FileDetailModal
+          file={selectedFile}
+          onClose={() => setSelectedFile(null)}
+          onDownload={() => {
+            downloadFile(selectedFile.id, selectedFile.original_name);
+          }}
+          onShare={() => {
+            setShareTarget(selectedFile);
+            setSelectedFile(null);
+          }}
+          onDelete={() => {
+            setDeleteTarget(selectedFile);
+            setSelectedFile(null);
+          }}
+          onToggleFavorite={() => {
+            dispatch(toggleFavorite(selectedFile.id));
+          }}
+        />
+      )}
+
       {/* ── Single file dialogs ── */}
       <ConfirmDialog
         isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)}
@@ -350,7 +380,6 @@ export default function MyFiles() {
           file={shareTarget} 
           isOpen={!!shareTarget} 
           onClose={() => {
-            exitSelectMode();
             setShareTarget(null)
           }}
         />

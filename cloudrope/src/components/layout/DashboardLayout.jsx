@@ -11,6 +11,7 @@ import {
   CalendarClock,
   Bell,
   Cloud,
+  FolderOpen,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import UploadQueueTray from '../ui/UploadQueueTray';
@@ -33,6 +34,13 @@ const bottomNavItems = [
   { to: '/dashboard/settings', label: 'Settings', icon: Settings, end: true },
   { to: '/dashboard/profile',  label: 'Profile',  icon: User,     end: true },
 ];
+
+const fileNavItems = [
+  { to: '/dashboard/files',  label: 'Files',     icon: Files,           end: true },
+  { to: '/dashboard/shares', label: 'Shares',    icon: Share2,          end: true },
+  { to: '/dashboard/trash',  label: 'Trash',     icon: Trash2,          end: true },
+];
+
 
 // ── Shared components ─────────────────────────────────────────────────────────
 
@@ -107,14 +115,14 @@ function SidebarContent({ onLogout, onNavClick }) {
 // Items shown left and right of the FAB (2 each side)
 const mobileLeftItems  = [
   { to: '/dashboard',        label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/dashboard/files',  label: 'Files',     icon: Files,           end: true },
+  { to: '/dashboard/favorites',  label: 'Favorites',     icon: Star,    end: true },
 ];
 const mobileRightItems = [
-  { to: '/dashboard/shares', label: 'Shares',    icon: Share2,          end: true },
+  { to: '/dashboard/files', label: 'Folders',    icon: FolderOpen,      end: true },
   { to: '/dashboard/profile',  label: 'Profile',  icon: User,     end: true },
 ];
 
-function MobileBottomNav({ onPlusClick }) {
+function MobileBottomNav({ onPlusClick, isFoldersSection }) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-t-3xl shadow-lg shadow-blue-500/10 transition-all duration-300 flex items-center h-16 px-2">
 
@@ -151,22 +159,33 @@ function MobileBottomNav({ onPlusClick }) {
 
       {/* Right items */}
       <div className="flex flex-1 items-center justify-around">
-        {mobileRightItems.map(({ to, icon: Icon, end, label }) => (
-          <NavLink
-            key={to} to={to} end={end}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
-                isActive ? 'text-accent' : 'text-text-muted'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              </>
-            )}
-          </NavLink>
-        ))}
+        {mobileRightItems.map(({ to, icon: Icon, end, label }) => {
+          const isFoldersButton = to === '/dashboard/files';
+
+          return (
+            <NavLink
+              key={to} to={to} end={end}
+              className={({ isActive }) => {
+                const active = isFoldersButton
+                  ? isFoldersSection
+                  : isActive;
+                return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+                  active ? 'text-accent' : 'text-text-muted'
+                }`}
+              }
+            >
+              {({ isActive }) => {
+                const active = isFoldersButton
+                  ? isFoldersSection
+                  : isActive;
+
+                return (
+                  <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                );
+              }}
+            </NavLink>
+          );
+        })}
       </div>
     </nav>
   );
@@ -181,6 +200,11 @@ function DashboardLayoutInner() {
   const [staged, setStaged] = useState([]);
   const idRef = useRef(0);
   const dispatch   = useDispatch();
+
+  const isFoldersSection =
+    location.pathname.startsWith("/dashboard/files") ||
+    location.pathname.startsWith("/dashboard/shares") ||
+    location.pathname.startsWith("/dashboard/trash");
 
   const filesStatus = useSelector((s) => s.files.status);
   const trashStatus = useSelector((s) => s.trash.status);
@@ -231,14 +255,36 @@ function DashboardLayoutInner() {
       <div className="flex-1 min-w-0">
 
         <header className="md:hidden fixed top-0 inset-x-0 z-50 flex justify-center">
-          <div className="flex w-[80%] max-w-[500px] items-center justify-center px-12 py-3 bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
+          <div className={`flex w-[80%] max-w-[500px] items-center ${isFoldersSection ? 'justify-between pb-2.5' : 'justify-center pb-3'} px-6 pt-3 bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300`}>     
 
-            <Link to="/" className="flex items-center mt-2 gap-2 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
-              <img src={logo} className='w-4' alt="CloudRope Logo" />
-              <span className="font-display font-extrabold text-text-primary text-xs tracking-wide flex">
-                cloud<span className='text-accent flex'>rope</span>
-              </span>
+            <Link to="/" className="flex items-center mt-2 gap-2.5 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
+              <img src={logo} className='w-6 -mt-0.5' alt="CloudRope Logo" />
+              {!isFoldersSection && <span className="font-display font-extrabold text-text-primary text-[10px] tracking-wide flex">
+                cloudrope</span>}
             </Link>
+
+            {isFoldersSection && (
+              <nav className='flex gap-2'>
+                {fileNavItems.map(({ to, icon: Icon, end }) => (
+                  <NavLink
+                    key={to} to={to} end={end} onClick={() => {}}
+                    className={({ isActive }) =>
+                      `flex items-center gap-4 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 ${
+                        isActive
+                          ? 'bg-elevated text-text-primary'
+                          : 'text-text-muted hover:text-text-primary hover:bg-elevated/70'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon size={16} strokeWidth={isActive ? 2.5 : 1.8} />
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+            )}
           </div>
 
 
@@ -250,7 +296,10 @@ function DashboardLayoutInner() {
       </div>
 
       {/* ── Mobile bottom nav ── */}
-      <MobileBottomNav onPlusClick={() => mobileFileRef.current?.click()} />
+      <MobileBottomNav 
+        onPlusClick={() => mobileFileRef.current?.click()}
+        isFoldersSection={isFoldersSection}
+      />
 
       {/* Hidden file input for mobile FAB */}
       <input
