@@ -9,6 +9,9 @@ def get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
+
 def send_share_email(share, request):
     share_url = request.build_absolute_uri(f"/shared/{share.token}/")
     sender_name = share.shared_by.get_full_name()

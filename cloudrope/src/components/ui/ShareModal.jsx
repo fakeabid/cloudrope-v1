@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
-import { Link, Link as LinkIcon, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserPlus, Link, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../ui/Modal';
 import CopyButton from '../ui/CopyButton';
@@ -10,6 +11,8 @@ import { fetchShares } from '../../store/sharesSlice';
 import { extractErrorMessage } from '../../utils/errors';
 import JSZip from 'jszip';
 import { filesAPI } from '../../api/files';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShareSuccess }) {
   const dispatch = useDispatch();
@@ -89,10 +92,10 @@ export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShare
   const isProcessing = status !== 'idle';
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Share files" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Share" size="md">
       {!shareUrl ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="bg-elevated rounded-lg px-3 py-2.5 border border-border flex items-center gap-3">
+          <div className="bg-accent-light rounded-lg px-3 py-2.5 border border-border flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
               <Package size={16} className="text-accent" />
             </div>
@@ -119,6 +122,8 @@ export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShare
               type="number"
               placeholder="Unlimited"
               {...register('max_downloads')}
+              min={1}
+              max={10}
               disabled={isProcessing}
             />
           </div>

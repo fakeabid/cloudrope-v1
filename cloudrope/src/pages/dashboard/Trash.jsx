@@ -126,12 +126,12 @@ export default function Trash() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-10">
+    <div className="h-full flex flex-col gap-6 md:gap-8">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="mt-3 md:mt-0">
           <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">trash</h1>
-          <p className="pt-2 pl-2 text-text-muted text-sm">
+          <p className="pt-2 pl-2 text-text-muted text-xs md:text-sm">
             {items.length} deleted file{items.length !== 1 ? 's' : ''}
             {selectMode && n > 0 && (
               <span className="text-accent font-medium ml-1">· {n} selected</span>
@@ -168,7 +168,7 @@ export default function Trash() {
             </>
           ) : (
             <button
-              className="btn-secondary rounded-full p-3"
+              className="btn-secondary rounded-full p-3 text-xs md:text-sm"
               onClick={() => setSelectMode(true)}
               disabled={items.length === 0}
             >

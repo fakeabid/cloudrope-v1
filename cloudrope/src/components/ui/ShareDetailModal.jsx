@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { X, Link2, Calendar, Download, Clock, ExternalLink } from 'lucide-react';
+import { X, Link2, Calendar, Download, Clock, ExternalLink, Mail, Eye, EyeOff } from 'lucide-react';
 import Badge from './Badge';
 import CopyButton from './CopyButton';
 import { formatDateTime } from '../../utils/formatters';
 
 export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, isRevoking }) {
   const overlayRef = useRef(null);
-
+ 
   // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -40,7 +40,7 @@ export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, i
             <p className="text-text-primary text-sm font-semibold truncate leading-snug">
               {share.file_name}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Badge status={share.status} />
             </div>
           </div>
@@ -54,26 +54,6 @@ export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, i
 
         {/* Body */}
         <div className="px-5 py-4 flex flex-col gap-4">
-
-          {/* Share link */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-text-muted flex items-center gap-1.5">
-              <Link2 size={12} />
-              Share link
-            </label>
-            <div className="flex items-center gap-2 bg-elevated rounded-lg px-3 py-2 border border-border">
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-text-muted text-xs truncate flex-1 hover:underline flex items-center gap-1 transition-all duration-300"
-              >
-                {url}
-                <ExternalLink size={10} className="shrink-0" />
-              </a>
-              <CopyButton text={url} />
-            </div>
-          </div>
 
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
@@ -96,6 +76,34 @@ export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, i
                   : `${share.download_count} (unlimited)`
               }
             />
+            <MetaItem
+              icon={<Eye size={12} />}
+              label="Views"
+              value={
+                share.max_views
+                  ? `${share.view_count} of ${share.max_views}`
+                  : `${share.view_count} (unlimited)`
+              }
+            />
+
+            {/* Recipient — full width */}
+            <div className="col-span-2">
+              <MetaItem
+                icon={<Mail size={12} />}
+                label="Recipient"
+                value={share.shared_with_email || '—'}
+              />
+            </div>
+            {/* First accessed — only when accessed link */}
+            {share.first_accessed_at && (
+              <div className="col-span-2">
+                <MetaItem
+                  icon={<Eye size={12} />}
+                  label="Accessed at"
+                  value={formatDateTime(share.first_accessed_at)}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -123,7 +131,7 @@ function MetaItem({ icon, label, value }) {
         {icon}
         {label}
       </span>
-      <span className="text-text-primary text-xs font-medium">{value}</span>
+      <span className="text-text-primary text-xs font-medium break-all">{value}</span>
     </div>
   );
 }

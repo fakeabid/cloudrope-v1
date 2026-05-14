@@ -27,7 +27,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
 
       {/* Dialog */}
       <div
-        className={`relative w-full ${sizes[size]} bg-surface border border-border rounded-2xl shadow-2xl animate-slide-up`}
+        className={`relative w-full ${sizes[size]} bg-surface border border-border rounded-3xl shadow-2xl animate-slide-up`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

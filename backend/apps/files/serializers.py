@@ -19,7 +19,6 @@ ALLOWED_MIME_TYPES = {
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
-
 # File Upload Serializers
 
 class FileUploadSerializer(serializers.ModelSerializer):
@@ -110,17 +109,22 @@ class FileListSerializer(serializers.ModelSerializer):
 # File Sharing Serializers
 
 class FileShareCreateSerializer(serializers.Serializer):
-    emails           = serializers.ListField(child=serializers.EmailField(), min_length=1, max_length=20)
+    emails = serializers.ListField(
+        child=serializers.EmailField(), 
+        min_length=1, max_length=20)
     expiration_hours = serializers.IntegerField(required=False, min_value=1, max_value=168)
     max_downloads = serializers.IntegerField(
         required=False,
         min_value=1,
         allow_null=True
     )
-    max_views        = serializers.IntegerField(required=False, min_value=1, allow_null=True)
+    max_views = serializers.IntegerField(
+        required=False, 
+        min_value=1, 
+        allow_null=True
+    )
 
     def validate_emails(self, emails):
-        # Deduplicate
         cleaned = list({e.strip().lower() for e in emails if e.strip()})
         return cleaned
 
@@ -158,24 +162,19 @@ class FileShareListSerializer(serializers.ModelSerializer):
     class Meta:
         model = FileShare
         fields = [
-            'id',
-            'file_name',
-            'token',
-            'created_at', 'expires_at',
-            'status', 'shared_with_email'
-            'max_downloads', 'download_count'
+            'id', 'file_name', 'token', 'created_at', 'expires_at',
+            'status', 'shared_with_email',
+            'max_downloads', 'download_count',
             'max_views', 'view_count',
             'is_viewed', 'first_viewed_at',
+            'first_accessed_at'
         ]
 
     def get_status(self, obj):
-        if obj.is_revoked:
-            return "revoked"
-        if obj.is_expired:
-            return "expired"
-        if obj.is_download_limit_reached and obj.is_view_limit_reached:
-            return "exhausted"
-        return "active"
-    
+        if obj.is_revoked:  return 'revoked'
+        if obj.is_expired:  return 'expired'
+        if obj.is_download_limit_reached and obj.is_view_limit_reached: return 'exhausted'
+        return 'active'
+
     def get_is_viewed(self, obj):
         return obj.first_viewed_at is not None

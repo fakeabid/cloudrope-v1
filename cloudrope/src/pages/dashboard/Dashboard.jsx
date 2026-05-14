@@ -268,7 +268,7 @@ function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, 
       </div>
 
       {/* File list */}
-      <div className="space-y-2 mb-5 overflow-y-auto">
+      <div className="space-y-2 mb-5 overflow-y-auto md:max-h-[380px]">
         {staged.length === 0 && (
           <p className="text-sm text-text-muted text-center py-8">No files staged</p>
         )}
