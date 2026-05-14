@@ -13,7 +13,7 @@ from .views import (
     SharedFileBrowserView,
     SharedFileDownloadView,
     FileShareListView,
-    FileShareRevokeView,
+    FileShareRevokeView
 )
 
 urlpatterns = [

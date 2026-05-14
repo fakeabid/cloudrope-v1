@@ -6,6 +6,9 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils import timezone
 import uuid
+import os
+import shutil
+from django.conf import settings
 
 
 class CloudropeUserManager(BaseUserManager):
@@ -73,4 +76,21 @@ class CloudropeUser(AbstractBaseUser, PermissionsMixin):
             self.display_name = self.first_name
 
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Delete avatar file
+        if self.avatar:
+            self.avatar.delete(save=False)
+
+        # Delete avatar directory if using per-user folders
+        avatar_dir = os.path.join(
+            settings.MEDIA_ROOT,
+            "avatars",
+            str(self.id)
+        )
+
+        if os.path.exists(avatar_dir):
+            shutil.rmtree(avatar_dir, ignore_errors=True)
+
+        super().delete(*args, **kwargs)
     

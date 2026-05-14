@@ -92,13 +92,8 @@ class FileShare(models.Model):
         null=True, blank=True, related_name='received_shares'
     )
 
-    shared_with_email = models.EmailField()
-    shared_with_user  = models.ForeignKey(           # populated if recipient has an account
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='received_shares'
-    )
-
     token = models.CharField(max_length=64, unique=True, db_index=True)
+
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_revoked = models.BooleanField(default=False)

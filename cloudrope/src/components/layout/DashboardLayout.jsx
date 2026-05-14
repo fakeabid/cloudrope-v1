@@ -252,7 +252,7 @@ function DashboardLayoutInner() {
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 flex items-center min-w-0">
 
         <header className="md:hidden fixed top-0 inset-x-0 z-50 flex justify-center">
           <div className={`flex w-[80%] max-w-[500px] items-center ${isFoldersSection ? 'justify-between pb-2.5' : 'justify-center pb-3'} px-6 pt-3 bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300`}>     
@@ -290,7 +290,7 @@ function DashboardLayoutInner() {
 
         </header>
 
-        <main className="flex-1 min-w-0 py-4 mt-3 md:mt-0 md:ml-3 lg:ml-8 pb-24 md:pb-0">
+        <main className="flex-1 h-[600px] min-w-0 py-4 mt-3 md:mt-0 md:ml-3 lg:ml-8 pb-24 md:pb-0">
           <Outlet context={{ staged, setStaged, stageFiles }}/>
         </main>
       </div>

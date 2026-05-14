@@ -157,7 +157,7 @@ class FileShareCreateSerializer(serializers.Serializer):
 class FileShareListSerializer(serializers.ModelSerializer):
     file_name = serializers.CharField(source='file.original_name', read_only=True)
     status = serializers.SerializerMethodField()
-    is_viewed = serializers.SerializerMethodField()
+    is_viewed         = serializers.SerializerMethodField()
 
     class Meta:
         model = FileShare

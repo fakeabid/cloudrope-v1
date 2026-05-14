@@ -1,7 +1,3 @@
-from django.core.mail import send_mail
-from django.conf import settings as django_settings
-
-
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
