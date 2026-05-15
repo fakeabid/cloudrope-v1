@@ -45,7 +45,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-6 max-w-xl">
+    <div className="flex flex-col gap-6 max-w-xl">
       <div className="mt-3 md:mt-0 mb-6">
         <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">settings</h1>
         <p className="pt-2 pl-2 text-text-muted text-sm">configure your app</p>

@@ -162,7 +162,7 @@ export default function MyFiles() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-6 md:gap-8">
+    <div className="flex flex-col gap-6 md:gap-8">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
@@ -245,7 +245,7 @@ export default function MyFiles() {
       )}
 
       {/* ── File table ── */}
-      <div className="overflow-auto animate-slide-up">
+      <div className="animate-slide-up">
 
         {status === 'loading' && Array.from({ length: 4 }).map((_, i) => <FileRowSkeleton key={i} />)}
 

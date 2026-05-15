@@ -126,7 +126,7 @@ export default function Trash() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-6 md:gap-8">
+    <div className="flex flex-col gap-6 md:gap-8">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="mt-3 md:mt-0">
@@ -188,7 +188,7 @@ export default function Trash() {
         </div>
       )}
 
-      <div className="overflow-hidden animate-slide-up">
+      <div className="animate-slide-up">
 
         {status === 'loading' && Array.from({ length: 3 }).map((_, i) => <FileRowSkeleton key={i} />)}
 

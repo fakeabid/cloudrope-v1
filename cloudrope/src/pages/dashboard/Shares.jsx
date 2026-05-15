@@ -56,7 +56,7 @@ export default function Shares() {
   const shareUrl = (token) => `${window.location.origin}/shared/${token}`;
  
   return (
-    <div className="h-full flex flex-col gap-6 md:gap-8">
+    <div className="flex flex-col gap-6 md:gap-8">
       <div className='mt-3 md:mt-0'>
         <h1 className="pt-2 pl-2 font-display font-bold text-text-primary text-2xl">shares</h1>
         <p className="pt-2 pl-2 text-text-muted text-xs md:text-sm">{items.length} share link{items.length !== 1 ? 's' : ''}</p>
@@ -72,7 +72,7 @@ export default function Shares() {
         </div>
       )}
 
-      <div className="overflow-hidden animate-slide-up">
+      <div className="animate-slide-up">
 
         {status === 'loading' && (
           <div className="p-4 space-y-3">

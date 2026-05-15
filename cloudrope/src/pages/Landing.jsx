@@ -37,12 +37,12 @@ export default function Landing() {
       <header className="fixed top-6 inset-x-0 mx-auto z-50 w-[90%] max-w-3xl">
         <div className="flex items-center justify-between px-6 py-2 bg-white/60 hover:bg-white backdrop-blur-md border border-white/20 rounded-2xl shadow-lg shadow-blue-500/5 transition-all duration-300">     
           {/* Logo */}
-          <Link to="/" className="flex items-center mt-2 gap-1 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
+          <Link to="/" className="flex items-center mt-2 gap-2 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center">
               <img src={logo} alt="Cloudrope Logo" className="w-8 h-8" />
             </div>
-            <span className="font-display font-extrabold text-text-primary text-sm tracking-wide flex">
-              cloud<span className='text-accent flex'>rope</span>
+            <span className="font-display font-extrabold text-text-primary text-xs tracking-wide flex">
+              cloudrope
             </span>
           </Link>
 
@@ -70,7 +70,7 @@ export default function Landing() {
           <span className="text-accent">
             revolutionization
           </span>{' '}
-          of file sharing<img src={logo} alt="Cloudrope Logo" className="inline w-20 h-20 animate-pulse" />
+          of file sharing<img src={logo} alt="Cloudrope Logo" className="inline w-20 h-20 ml-3 animate-pulse" />
         </h1>
 
         <p className="text-text-muted text-lg max-w-xl leading-relaxed mb-10">

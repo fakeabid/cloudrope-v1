@@ -116,11 +116,13 @@ class FileShareCreateSerializer(serializers.Serializer):
     max_downloads = serializers.IntegerField(
         required=False,
         min_value=1,
+        max_value=10,
         allow_null=True
     )
     max_views = serializers.IntegerField(
         required=False, 
         min_value=1, 
+        max_value=20,
         allow_null=True
     )
 

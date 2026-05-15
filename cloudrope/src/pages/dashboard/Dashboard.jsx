@@ -6,7 +6,7 @@ import { Link, useOutletContext, useNavigate } from 'react-router-dom';
 import { fetchFiles } from '../../store/filesSlice';
 import { fetchShares } from '../../store/sharesSlice';
 import { fetchTrash } from '../../store/trashSlice';
-import { X, Settings, Flame, Cloud } from 'lucide-react';
+import { X, Settings, Flame, Cloud, Minus } from 'lucide-react';
 import { Link as Link2, Star, Bell, BellDot, File, Share, Share2 } from 'lucide-react';
 import { MAX_STORAGE_BYTES } from '../../utils/formatters';
 import toast from 'react-hot-toast';
@@ -15,13 +15,6 @@ import cloudyAI from '../../assets/cloudyai.svg'
 import ShareModal from '../../components/ui/ShareModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-// function getGreeting(name) {
-//   const h = new Date().getHours();
-//   const time = h < 12 ? 'morning ⛅' : h < 18 ? 'afternoon 🌞' : 'evening 🌙';
-//   const first = name?.split(' ')[0]?.toLowerCase() || 'there';
-//   return `good ${time}, ${first}`;
-// }
 
 function getDayEmoji() {
   const h = new Date().getHours();
@@ -36,6 +29,21 @@ function getCalendarDates() {
     d.setDate(today.getDate() + offset);
     return d;
   });
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getMimeLabel(type) {
+  const map = {
+    'image/jpeg': 'JPG', 'image/png': 'PNG',
+    'application/pdf': 'PDF', 'text/plain': 'TXT',
+    'application/zip': 'ZIP',
+  };
+  return map[type] || type?.split('/')[1]?.toUpperCase().slice(0, 4) || '?';
 }
 
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -115,9 +123,9 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
   const notificationsCount = 4;
 
   return (
-    <div className="flex flex-col animate-fade-up">
+    <div className="flex flex-col md:h-full animate-fade-up">
       {/* Activity header */}
-      <div className="bg-surface rounded-3xl shadow-card p-5 flex flex-col gap-4 md:h-[570px] overflow-y-auto">
+      <div className="bg-surface rounded-3xl shadow-card p-5 flex flex-col gap-4 h-full overflow-y-auto">
         <div className='px-2 flex justify-between'>
           <p className="text-sm text-text-muted font-medium">Activity</p>
           <div className='flex gap-1'>
@@ -250,13 +258,53 @@ function StatsPanel({ activeSharesCount, expiringShares, usedPercent }) {
   );
 }
 
+function StagedFileDetail({ item, onClose }) {
+  const { file } = item;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface rounded-2xl p-5 shadow-2xl w-72 mx-4 animate-fade-up"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-3">
+          <span className="text-[10px] font-bold text-accent bg-accent/10 rounded-md px-2 py-1 uppercase tracking-wide">
+            {getMimeLabel(file.type)}
+          </span>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+        <p className="text-text-primary text-sm font-medium break-all mb-4 leading-snug">{file.name}</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-elevated rounded-xl px-3 py-2.5">
+            <p className="text-text-muted text-xs mb-0.5">Size</p>
+            <p className="text-text-primary text-xs font-semibold">{formatSize(file.size)}</p>
+          </div>
+          <div className="bg-elevated rounded-xl px-3 py-2.5">
+            <p className="text-text-muted text-xs mb-0.5">Type</p>
+            <p className="text-text-primary text-xs font-semibold truncate">{file.type || '—'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Upload List Panel ────────────────────────────────────────────────────────
-function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, isZipping }) {
+function UploadListPanel({ staged, onDetailItemChange, onRemove, onClearAll, onUploadOnly, onShare, isZipping }) {
+  const totalSize = staged.reduce((acc, i) => acc + i.file.size, 0);
 
   return (
-    <div className="bg-surface rounded-2xl shadow-card p-5 animate-fade-up flex flex-col h-full" style={{ minHeight: 360 }}>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold text-text-primary">Upload List</p>
+    <div className="bg-surface/30 hover:bg-surface/60 hover:shadow-lg rounded-2xl shadow-card p-5 animate-fade-up flex flex-col md:h-full transition-all duration-300" style={{ minHeight: 360 }}>
+      <div className="flex items-center justify-between mb-4 px-2">
+        <p className="text-sm font-semibold">
+          <span className='text-text-muted text-xs'>
+            {staged.length} file{staged.length !== 1 ? 's' : ''} · {formatSize(totalSize)}
+          </span>
+        </p>
         {staged.length > 0 && (
           <button
             onClick={onClearAll}
@@ -268,39 +316,47 @@ function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, 
       </div>
 
       {/* File list */}
-      <div className="space-y-2 mb-5 overflow-y-auto md:max-h-[380px]">
+      <div className="space-y-2 mb-5 overflow-y-auto md:max-h-[400px]">
         {staged.length === 0 && (
           <p className="text-sm text-text-muted text-center py-8">No files staged</p>
         )}
         {staged.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-3 bg-accent-light rounded-xl px-3 py-2.5"
+            onClick={() => onDetailItemChange(item)}
+            className="flex items-center gap-3 bg-accent-light rounded-xl px-3 py-2.5 hover:cursor-pointer hover:bg-accent/10 transition-colors"
           >
+            {/* MIME badge */}
+            <span className="text-[9px] font-bold text-accent bg-white/70 rounded px-1.5 py-0.5 uppercase tracking-wide flex-shrink-0 w-8 text-center">
+              {getMimeLabel(item.file.type)}
+            </span>
             <p className="flex-1 text-sm text-text-primary truncate">{item.file.name}</p>
+            <span className="text-xs text-text-muted flex-shrink-0 hidden sm:block">
+              {formatSize(item.file.size)}
+            </span>
             <button
               onClick={() => onRemove(item.id)}
               className="text-error hover:bg-error/10 p-1 rounded transition-colors flex-shrink-0"
             >
-              <X size={14} />
+              <Minus size={14} />
             </button>
           </div>
         ))}
       </div>
 
       {/* Action buttons */}
-      <div className="space-y-2">
+      <div className="space-y-2 hidden md:block">
         <button
           onClick={onUploadOnly}
           disabled={staged.length === 0}
-          className="btn-primary-full"
+          className="btn-primary-full rounded-2xl"
         >
           Upload Only
         </button>
         <button
           onClick={onShare}
           disabled={staged.length === 0 || isZipping}
-          className="btn-dark"
+          className="btn-dark rounded-2xl"
         >
           {isZipping ? (
             <span className="flex items-center justify-center gap-2">
@@ -310,7 +366,6 @@ function UploadListPanel({ staged, onRemove, onClearAll, onUploadOnly, onShare, 
           ) : 'Share'}
         </button>
       </div>
-
     </div>
   );
 }
@@ -336,6 +391,7 @@ export default function Dashboard() {
   const [isZipping,  setIsZipping]  = useState(false);    // true while zipping + uploading
   const [isDragging, setIsDragging] = useState(false);
   const [isSharingStaged, setIsSharingStaged] = useState(false);
+  const [detailItem, setDetailItem] = useState(null);
   const dragCounter = useRef(0);
   const fileInputRef = useRef(null);
   const idRef = useRef(0);
@@ -420,11 +476,10 @@ export default function Dashboard() {
   }, [stageFiles]);
 
   return (
-    <div className="flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10 h-full">
+    <div className="md:h-full flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10">
       <div className='flex flex-col gap-6 justify-between'>
-        <h1 className={`${ panelMode === 'upload' ? 'hidden' : ''} mt-3 md:mt-0 pt-2 pl-2 font-display font-bold text-text-primary text-2xl`}>dashboard {getDayEmoji()}</h1>
+        <h1 className={`${ panelMode === 'upload' ? 'hidden' : ''} mt-3 md:mt-0 pt-2 pl-2 font-display font-bold text-text-primary text-center md:text-left text-2xl`}>dashboard {getDayEmoji()}</h1>
 
-        {/* Stats */}
         <div className={`${ panelMode === 'upload' ? '' : 'md:grid'} hidden grid-cols-3 gap-5 flex-1 max-h-32`}>
           <Link to="/dashboard/files" className='bg-blue-50 py-3 px-8 rounded-3xl shadow-card hover:shadow-card-hover flex flex-col items-center justify-center gap-2 text-blue-500 hover:text-accent select-none transition-all duration-300 animate-slide-up relative overflow-hidden'>
             <File size={30}/>
@@ -441,7 +496,32 @@ export default function Dashboard() {
         </div>
 
         { panelMode == 'upload' && 
-          <h1 className='mt-3 font-display pt-2 pl-2 text-2xl md:text-3xl font-bold text-text-primary animate-slide-up flex items-center gap-2'>file upload <Share size={22}  className='text-accent'/></h1>
+          <div className='flex flex-col items-center animate-slide-up'>
+            <h1 className='mt-3 font-display pt-2 md:pl-2 text-2xl md:text-3xl font-bold text-text-primary flex items-center gap-2'>file upload <Share size={22}  className='text-accent'/></h1>
+
+            <div className='md:hidden w-[80%] max-w-[200px] flex flex-col items-center gap-3 mt-5'>
+               <button
+                  onClick={handleUploadOnly}
+                  disabled={staged.length === 0}
+                  className="btn-primary btn-full rounded-2xl"
+                >
+                  Upload Only
+                </button>
+
+                <button
+                  onClick={handleShare}
+                  disabled={staged.length === 0 || isZipping}
+                  className="btn-dark rounded-2xl"
+                >
+                  {isZipping ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {staged.length > 1 ? 'Zipping…' : 'Uploading…'}
+                    </span>
+                  ) : 'Share'}
+                </button>
+            </div>
+          </div> 
         }
 
         {/* ── Cloud card ── */}
@@ -495,13 +575,13 @@ export default function Dashboard() {
         </div>
       </div>
       {/* ── Right panel ── */}
-      <div className="grid grid-cols-1 grid-rows-1">
+      <div className="grid grid-cols-1 grid-rows-1 md:h-full">
         {/* Stats panel */}
         <div
           className={`col-start-1 row-start-1 transition-all duration-300 ${
             panelMode === 'stats'
-              ? 'opacity-100 translate-y-0 z-10'
-              : 'opacity-0 translate-y-2 z-0 pointer-events-none'
+              ? 'translate-y-0 z-10'
+              : 'hidden translate-y-2 z-0 pointer-events-none'
           }`}
         >
           <StatsPanel
@@ -521,6 +601,7 @@ export default function Dashboard() {
         >
           <UploadListPanel
             staged={staged}
+            onDetailItemChange={setDetailItem}
             onRemove={removeStaged}
             onClearAll={clearAll}
             onUploadOnly={handleUploadOnly}
@@ -529,6 +610,10 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {detailItem && (
+        <StagedFileDetail item={detailItem} onClose={() => setDetailItem(null)} />
+      )}
 
       {/* Share modal */}
       {(isSharingStaged || shareQueue.length > 0) && (

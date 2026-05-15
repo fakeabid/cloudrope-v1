@@ -27,6 +27,9 @@
   .btn-primary-full {
     @apply bg-accent hover:bg-accent-hover text-white font-semibold px-4 py-3 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm w-full shadow-sm;
   }
+  .btn-full {
+    @apply py-3 justify-center w-full;
+  }
   .btn-dark {
     @apply bg-[#111827] hover:bg-[#1F2937] text-white font-semibold px-4 py-3 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm w-full;
   }

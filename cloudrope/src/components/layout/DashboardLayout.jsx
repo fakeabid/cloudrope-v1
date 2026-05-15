@@ -244,22 +244,22 @@ function DashboardLayoutInner() {
   };
 
   return (
-    <div className="h-screen bg-bg flex gap-3 py-8 px-6 lg:px-8">
+    <div className="md:h-screen overflow-y-auto bg-bg flex gap-3 md:py-6 px-6 lg:px-8">
 
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex w-44 h-full lg:w-64 flex-shrink-0 flex-col bg-surface rounded-3xl shadow-card px-4 py-5">
+      <aside className="hidden md:flex w-44 h-full lg:w-64 flex-shrink-0 flex-col min-h-0 bg-surface rounded-3xl shadow-card px-4 py-5">
         <SidebarContent onLogout={handleLogout} onNavClick={() => {}} />
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex items-center min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
 
         <header className="md:hidden fixed top-0 inset-x-0 z-50 flex justify-center">
           <div className={`flex w-[80%] max-w-[500px] items-center ${isFoldersSection ? 'justify-between pb-2.5' : 'justify-center pb-3'} px-6 pt-3 bg-white/20 hover:bg-white backdrop-blur-md border border-white/20 rounded-b-2xl shadow-lg shadow-blue-500/5 transition-all duration-300`}>     
 
-            <Link to="/" className="flex items-center mt-2 gap-2.5 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
-              <img src={logo} className='w-6 -mt-0.5' alt="CloudRope Logo" />
-              {!isFoldersSection && <span className="font-display font-extrabold text-text-primary text-[10px] tracking-wide flex">
+            <Link to="/" className="flex items-center mt-2 p-1.5 gap-2.5 hover:cursor-pointer hover:opacity-90 transition-all duration-200">
+              <img src={logo} className='w-6' alt="CloudRope Logo" />
+              {!isFoldersSection && <span className="font-display font-extrabold text-text-primary text-xs tracking-wide flex">
                 cloudrope</span>}
             </Link>
 
@@ -269,7 +269,7 @@ function DashboardLayoutInner() {
                   <NavLink
                     key={to} to={to} end={end} onClick={() => {}}
                     className={({ isActive }) =>
-                      `flex items-center gap-4 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 ${
+                      `flex items-center gap-4 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
                         isActive
                           ? 'bg-elevated text-text-primary'
                           : 'text-text-muted hover:text-text-primary hover:bg-elevated/70'
@@ -290,7 +290,7 @@ function DashboardLayoutInner() {
 
         </header>
 
-        <main className="flex-1 h-[600px] min-w-0 py-4 mt-3 md:mt-0 md:ml-3 lg:ml-8 pb-24 md:pb-0">
+        <main className="flex-1 min-h-0 min-w-0 py-4 mt-14 md:mt-0 md:ml-3 lg:ml-8 pb-24 md:pb-0">
           <Outlet context={{ staged, setStaged, stageFiles }}/>
         </main>
       </div>

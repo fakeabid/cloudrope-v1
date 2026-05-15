@@ -30,10 +30,19 @@ export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, i
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in p-0"
+      className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:justify-end bg-black/40 backdrop-blur-sm animate-fade-in p-0"
     >
-      <div className="relative w-full sm:max-w-lg h-[80%] bg-surface border border-border rounded-t-2xl shadow-2xl animate-slide-up overflow-hidden">
-
+      <div className="
+        relative
+        w-full sm:max-w-lg md:max-w-md
+        h-[80%] md:h-[90%]
+        bg-surface border border-border
+        rounded-t-2xl md:rounded-none md:rounded-l-2xl
+        shadow-2xl overflow-hidden
+        animate-slide-up md:animate-slide-in
+        transition-transform duration-300 ease-out
+        translate-y-0 md:translate-x-0
+      ">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-border">
           <div className="flex flex-col gap-1 min-w-0">
@@ -87,7 +96,7 @@ export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, i
             />
 
             {/* Recipient — full width */}
-            <div className="col-span-2">
+            <div className="col-span-2 md:col-span-1">
               <MetaItem
                 icon={<Mail size={12} />}
                 label="Recipient"
@@ -96,7 +105,7 @@ export default function ShareDetailModal({ share, shareUrl, onClose, onRevoke, i
             </div>
             {/* First accessed — only when accessed link */}
             {share.first_accessed_at && (
-              <div className="col-span-2">
+              <div className="col-span-2 md:col-span-1">
                 <MetaItem
                   icon={<Eye size={12} />}
                   label="Accessed at"
