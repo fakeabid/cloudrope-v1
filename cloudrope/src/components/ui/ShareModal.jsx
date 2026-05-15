@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import Modal from './Modal';
 import { fetchFiles, shareFile } from '../../store/filesSlice';
 import { fetchShares } from '../../store/sharesSlice';
-import { extractErrorMessage } from '../../utils/errors';
+import getErrorMessage from '../../utils/getErrorMessage';
 import JSZip from 'jszip';
 import { filesAPI } from '../../api/files';
 
@@ -100,8 +100,8 @@ export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShare
       setStatus('success');
       if (onShareSuccess) onShareSuccess();
 
-    } catch (err) {
-      toast.error(extractErrorMessage({ response: { data: err } }) || 'Share failed');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Share failed.'));
       setStatus('idle');
     }
   };
@@ -216,7 +216,12 @@ export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShare
                       type="number" min="1" max="10" placeholder="Unlimited"
                       className="input-field"
                       value={maxDownloads}
-                      onChange={e => setMaxDownloads(e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '') { setMaxDownloads(''); return; }
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num)) setMaxDownloads(Math.min(num, 10).toString());
+                      }}
                       disabled={isProcessing}
                     />
                   </div>
@@ -226,7 +231,12 @@ export default function ShareModal({ file, stagedFiles, isOpen, onClose, onShare
                       type="number" min="1" max="20" placeholder="Unlimited"
                       className="input-field"
                       value={maxViews}
-                      onChange={e => setMaxViews(e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '') { setMaxViews(''); return; }
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num)) setMaxViews(Math.min(num, 20).toString());
+                      }}
                       disabled={isProcessing}
                     />
                   </div>

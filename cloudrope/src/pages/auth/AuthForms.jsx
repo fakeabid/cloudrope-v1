@@ -7,6 +7,7 @@ import AuthLayout from './AuthLayout';
 import { authAPI } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { extractErrorMessage } from '../../utils/errors';
+import getErrorMessage from '../../utils/getErrorMessage';
 
 // ─── Resend Verification ───────────────────────────────────────────────────────
 export function ResendVerification() {
@@ -175,11 +176,11 @@ export function ResetPassword() {
       clearAll();
       toast.success('Password reset successfully. Please sign in.');
       navigate('/auth/login', { replace: true });
-    } catch (err) {
-      const data = err.response?.data;
+    } catch (error) {
+      const data = error.response?.data;
       if (data?.token) setError('root', { message: data.token[0] });
       else if (data?.confirm_password) setError('confirm_password', { message: data.confirm_password[0] });
-      else toast.error(extractErrorMessage(err));
+      else toast.error(getErrorMessage(error, 'Password Reset failed'));
     } finally {
       setIsLoading(false);
     }
