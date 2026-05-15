@@ -335,7 +335,10 @@ function UploadListPanel({ staged, onDetailItemChange, onRemove, onClearAll, onU
               {formatSize(item.file.size)}
             </span>
             <button
-              onClick={() => onRemove(item.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(item.id)}
+              }
               className="text-error hover:bg-error/10 p-1 rounded transition-colors flex-shrink-0"
             >
               <Minus size={14} />
@@ -351,7 +354,7 @@ function UploadListPanel({ staged, onDetailItemChange, onRemove, onClearAll, onU
           disabled={staged.length === 0}
           className="btn-primary-full rounded-2xl"
         >
-          Upload Only
+          Upload To Cloud
         </button>
         <button
           onClick={onShare}
@@ -363,7 +366,10 @@ function UploadListPanel({ staged, onDetailItemChange, onRemove, onClearAll, onU
               <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               {staged.length > 1 ? 'Zipping…' : 'Uploading…'}
             </span>
-          ) : 'Share'}
+          ) : 
+          <span className='flex gap-2 items-center justify-center'>
+            Drop Rope <Link2 size={16} />
+          </span>}
         </button>
       </div>
     </div>
@@ -478,7 +484,7 @@ export default function Dashboard() {
   return (
     <div className="md:h-full flex flex-col md:grid grid-cols-2 gap-6 lg:gap-10">
       <div className='flex flex-col gap-6 justify-between'>
-        <h1 className={`${ panelMode === 'upload' ? 'hidden' : ''} mt-3 md:mt-0 pt-2 pl-2 font-display font-bold text-text-primary text-center md:text-left text-2xl`}>dashboard {getDayEmoji()}</h1>
+        <h1 className={`${ panelMode === 'upload' ? 'hidden' : ''} mt-3 md:mt-0 pt-2 pl-2 font-display font-bold text-text-primary text-center md:text-left text-2xl animate-slide-up`}>dashboard {getDayEmoji()}</h1>
 
         <div className={`${ panelMode === 'upload' ? '' : 'md:grid'} hidden grid-cols-3 gap-5 flex-1 max-h-32`}>
           <Link to="/dashboard/files" className='bg-blue-50 py-3 px-8 rounded-3xl shadow-card hover:shadow-card-hover flex flex-col items-center justify-center gap-2 text-blue-500 hover:text-accent select-none transition-all duration-300 animate-slide-up relative overflow-hidden'>
@@ -496,8 +502,8 @@ export default function Dashboard() {
         </div>
 
         { panelMode == 'upload' && 
-          <div className='flex flex-col items-center animate-slide-up'>
-            <h1 className='mt-3 font-display pt-2 md:pl-2 text-2xl md:text-3xl font-bold text-text-primary flex items-center gap-2'>file upload <Share size={22}  className='text-accent'/></h1>
+          <div className='flex flex-col items-center md:items-start animate-slide-up'>
+            <h1 className='mt-3 font-display pt-2 md:pl-2 text-2xl font-bold text-text-primary flex items-center gap-2'>file upload <Share size={22}  className='text-accent'/></h1>
 
             <div className='md:hidden w-[80%] max-w-[200px] flex flex-col items-center gap-3 mt-5'>
                <button
@@ -505,7 +511,7 @@ export default function Dashboard() {
                   disabled={staged.length === 0}
                   className="btn-primary btn-full rounded-2xl"
                 >
-                  Upload Only
+                  Upload To Cloud
                 </button>
 
                 <button
@@ -518,7 +524,11 @@ export default function Dashboard() {
                       <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       {staged.length > 1 ? 'Zipping…' : 'Uploading…'}
                     </span>
-                  ) : 'Share'}
+                  ) :
+                  <span className='flex gap-2 items-center justify-center'>
+                    Drop Rope <Link2 size={16} />
+                  </span>
+                  }
                 </button>
             </div>
           </div> 
